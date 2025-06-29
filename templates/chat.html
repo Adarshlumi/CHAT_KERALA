@@ -2,222 +2,234 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MALLU PUBLIC CHAT IN KERALA</title>
+  <title>Mallu Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Poppins', 'Segoe UI', sans-serif;
     }
 
     body {
       margin: 0;
       padding: 0;
-      background: #F2F3F5;
-      color: #000;
-      font-size: 14px;
+      background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
+      color: #f4f4f4;
     }
 
     header {
-      background-color: #673AB7;
-      color: white;
-      padding: 6px 12px;
-      font-size: 14px;
+      background: rgba(31, 43, 56, 0.85);
+      backdrop-filter: blur(10px);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      height: 36px;
+      padding: 1rem 1.5rem;
+      font-size: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      border-bottom: 1px solid #3a3f58;
+    }
+
+    header span {
+      font-weight: 500;
     }
 
     #reply-banner {
       display: none;
-      padding: 8px 12px;
-      background: #EDE7F6;
-      border-left: 4px solid #512DA8;
-      border-radius: 6px 6px 0 0;
-      font-size: 13px;
-      color: #333;
-      position: relative;
-      margin-bottom: -1px;
-    }
-
-    #reply-text {
+      padding: 0.6rem 1rem;
+      background: #ffc107;
+      color: #1b1b1b;
       font-weight: 500;
-      font-size: 13px;
-    }
-
-    #cancel-reply {
-      position: absolute;
-      right: 10px;
-      top: 6px;
-      background: none;
-      border: none;
-      font-size: 18px;
-      color: #512DA8;
-      cursor: pointer;
+      font-size: 0.95rem;
+      text-align: center;
     }
 
     #chat-container {
-      padding: 8px 10px;
-      height: calc(100vh - 90px);
+      padding: 1rem;
+      height: calc(100vh - 210px);
       overflow-y: auto;
+      scroll-behavior: smooth;
     }
 
     .message {
-      max-width: 80%;
-      margin-bottom: 8px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.4;
+      max-width: 85%;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 18px;
+      background-color: #3e4a5a;
+      word-wrap: break-word;
+      box-shadow: 2px 3px 10px rgba(0, 0, 0, 0.25);
+      transition: 0.3s;
     }
 
-    .self {
-      background-color: #D1C4E9;
-      margin-left: auto;
-      border-bottom-right-radius: 0;
-    }
-
-    .other {
-      background-color: #fff;
+    .message.other {
+      background-color: #475d7c;
       margin-right: auto;
-      border-bottom-left-radius: 0;
+    }
+
+    .message.self {
+      background-color: #2ecc71;
+      color: #fff;
+      margin-left: auto;
+    }
+
+    .message strong {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #f9ca24;
     }
 
     .msg-content {
-      margin-top: 4px;
+      font-size: 1rem;
+      margin-top: 8px;
+      line-height: 1.6;
     }
 
     .chat-image {
-      max-height: 140px;
-      margin-top: 8px;
-      border-radius: 6px;
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 12px;
+      margin-top: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     }
 
     .message small {
+      font-size: 0.75rem;
+      color: #ccc;
       display: block;
+      margin-top: 0.5rem;
       text-align: right;
-      font-size: 12px;
-      color: #555;
-      margin-top: 6px;
     }
 
     .actions {
-      margin-top: 5px;
+      margin-top: 8px;
       display: flex;
-      gap: 5px;
+      gap: 0.4rem;
     }
 
     .actions button {
-      padding: 3px 6px;
-      font-size: 12px;
+      background: #596e8c;
+      color: #fff;
       border: none;
-      border-radius: 5px;
-      background: #eee;
+      padding: 4px 10px;
+      border-radius: 10px;
       cursor: pointer;
+      font-size: 0.75rem;
+      transition: 0.2s;
+    }
+
+    .actions button:hover {
+      background: #798da8;
     }
 
     #input-area {
       position: fixed;
       bottom: 0;
       width: 100%;
-      background: #fff;
-      border-top: 1px solid #ccc;
-      padding: 6px 8px;
+      background: #1f2b38;
+      padding: 1rem;
       display: flex;
       align-items: center;
-      gap: 6px;
-      height: 54px;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.5);
     }
 
     #msg {
       flex: 1;
-      padding: 6px 12px;
-      font-size: 15px;
-      border-radius: 16px;
-      border: 1px solid #ccc;
-      background: #f8f8f8;
+      padding: 0.8rem 1rem;
+      font-size: 1rem;
+      border-radius: 20px;
+      border: none;
+      background: #34495e;
+      color: #fff;
     }
 
-    label[for="file"] {
-      font-size: 18px;
-      color: #555;
-      cursor: pointer;
+    #msg:focus {
+      outline: none;
+      background: #415b76;
     }
 
     #file {
       display: none;
     }
 
+    label[for="file"] {
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #aaa;
+      transition: 0.2s;
+    }
+
+    label[for="file"]:hover {
+      color: #fff;
+    }
+
     #preview {
       display: none;
-      max-width: 32px;
-      max-height: 32px;
-      border-radius: 5px;
+      max-width: 80px;
+      max-height: 80px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
     #send-btn {
-      background: #673AB7;
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
       color: white;
       border: none;
-      width: 32px;
-      height: 32px;
-      font-size: 16px;
-      border-radius: 50%;
+      padding: 0.7rem 1rem;
+      font-size: 1.2rem;
+      border-radius: 20px;
       cursor: pointer;
+      transition: 0.3s ease-in-out;
     }
 
-    .reply-quote {
-      background-color: #F3E5F5;
-      border-left: 4px solid #7E57C2;
-      padding: 6px 10px;
-      font-size: 13px;
-      color: #333;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      cursor: pointer;
+    #send-btn:hover {
+      background: linear-gradient(135deg, #ff3c5f, #ff331a);
     }
 
-    .message.highlight {
-      animation: pulse-highlight 1.5s ease-out;
-      box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.4);
+    @media (max-width: 600px) {
+      .message {
+        max-width: 95%;
+        font-size: 0.95rem;
+      }
+      .msg-content {
+        font-size: 0.95rem;
+      }
+      #send-btn {
+        font-size: 1rem;
+        padding: 0.6rem 0.9rem;
+      }
     }
 
-    @keyframes pulse-highlight {
-      0% { box-shadow: 0 0 0 0 rgba(103, 58, 183, 0.8); }
-      100% { box-shadow: 0 0 0 3px rgba(103, 58, 183, 0); }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-animate {
+      animation: fadeInUp 0.4s ease-out;
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div><strong>{{ username }}</strong> </div> 
-  <div>🟢 <span id="online-count">1</span> Online</div>
+  <span>👤 {{ username }}</span>
+  <span>🟢 Online Users: <strong id="online-count">1</strong></span>
 </header>
 
-
-
-
-
-<div id="reply-banner">
-  <span id="reply-text"></span>
-  <button id="cancel-reply" onclick="cancelReply()">×</button>
-</div>
+<div id="reply-banner"></div>
 
 <div id="chat-container">
   {% for msg in messages %}
-    <div class="message {% if msg[1] == username %}self{% else %}other{% endif %}" data-id="{{ msg[0] }}">
+    <div class="message {% if msg[1] == username %}self{% else %}other{% endif %} message-animate" data-id="{{ msg[0] }}">
       <strong>{{ msg[1] }}</strong>
-      <div class="msg-content">
-        {% if msg[4] %}
-          <div class="reply-quote" onclick="highlightMessage({{ msg[7] }})"><strong>{{ msg[6] }}:</strong> {{ msg[4] }}</div>
-        {% endif %}
-        {{ msg[2]|safe }}
-      </div>
+      <span class="msg-content">{% if msg[4] %}<em>(reply)</em> {% endif %}{{ msg[2]|safe }}</span>
       {% if msg[5] %}
         <img src="{{ msg[5] }}" class="chat-image" />
       {% endif %}
@@ -233,11 +245,21 @@
 </div>
 
 <div id="input-area">
-  <form id="msg-form" onsubmit="sendMessage(); return false;" style="display: flex; gap: 6px; align-items: center; width: 100%;">
-    <input type="text" id="msg" placeholder="Type your message..." autocomplete="off" />
-    <label for="file" title="Attach image">📎</label>
+
+
+
+
+
+
+
+
+
+    
+  <form id="msg-form" onsubmit="sendMessage(); return false;" style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+    <input type="text" id="msg" placeholder="Type something nice..." autocomplete="off" />
+    <label for="file" title="Attach image">📷</label>
     <input type="file" id="file" accept="image/*" onchange="previewImage()" />
-    <img id="preview" alt="Preview" />
+    <img id="preview" alt="Image preview" />
     <button id="send-btn" type="submit">➤</button>
   </form>
 </div>
@@ -248,10 +270,24 @@
   let replyToId = null;
   let selectedImageBase64 = null;
 
-  socket.on('update_user_count', data => {
-    document.getElementById('online-count').innerText = data.count;
-  });
 
+
+socket.on('update_user_count', data => {
+  document.getElementById('online-count').innerText = data.count;
+});
+
+
+
+
+socket.emit('register_user', { username });
+
+
+
+
+
+
+
+  // Register user on connect
   socket.emit('register_user', { username });
 
   function previewImage() {
@@ -275,6 +311,7 @@
     const msgInput = document.getElementById('msg');
     const msg = msgInput.value.trim();
 
+    // If there's an image selected, upload it first, then send message with image_url
     if (selectedImageBase64) {
       uploadImage(selectedImageBase64, () => {
         if (msg) sendTextMessage(msg);
@@ -283,6 +320,7 @@
       return;
     }
 
+    // No image, just send text message if any
     if (msg) {
       sendTextMessage(msg);
       clearInputs();
@@ -300,6 +338,7 @@
   }
 
   function uploadImage(base64Data, callback) {
+    // Convert base64 to Blob
     const blob = base64ToBlob(base64Data);
     const formData = new FormData();
     formData.append('file', blob, 'upload.png');
@@ -308,8 +347,11 @@
       method: 'POST',
       body: formData
     }).then(res => {
-      if (res.ok && callback) callback();
-      else alert('Image upload failed.');
+      if (res.ok) {
+        if (callback) callback();
+      } else {
+        alert('Image upload failed.');
+      }
     });
   }
 
@@ -319,12 +361,15 @@
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new Blob([u8arr], { type: mime });
+    while(n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
   }
 
   function clearInputs() {
-    document.getElementById('msg').value = '';
+    const msgInput = document.getElementById('msg');
+    msgInput.value = '';
     document.getElementById('file').value = '';
     selectedImageBase64 = null;
     document.getElementById('preview').style.display = 'none';
@@ -332,53 +377,26 @@
 
   function replyTo(id) {
     replyToId = id;
-    const msgEl = document.querySelector(`.message[data-id="${id}"]`);
-    const sender = msgEl.querySelector('strong')?.innerText || 'User';
-
-    const replyTextElement = msgEl.querySelector('.msg-content');
-    let content = '';
-
-    if (replyTextElement) {
-      const cloned = replyTextElement.cloneNode(true);
-      cloned.querySelectorAll('.reply-quote, img').forEach(el => el.remove());
-      content = cloned.innerText.trim();
+    const msgEl = document.querySelector(`.message[data-id="${id}"] .msg-content`);
+    const banner = document.getElementById('reply-banner');
+    if (banner && msgEl) {
+      banner.innerText = "Replying to: " + msgEl.innerText.slice(0, 50) + "...";
+      banner.style.display = 'block';
     }
-
-    if (!content) content = '[media]';
-    if (content.length > 60) content = content.slice(0, 60) + '…';
-
-    document.getElementById('reply-text').innerHTML = `<strong>${sender}:</strong> ${content}`;
-    document.getElementById('reply-banner').style.display = 'block';
-  }
-
-  function cancelReply() {
-    replyToId = null;
-    document.getElementById('reply-banner').style.display = 'none';
   }
 
   function deleteMessage(id) {
     socket.emit('delete_message', { id });
   }
 
-  function highlightMessage(id) {
-    const target = document.querySelector(`.message[data-id="${id}"]`);
-    if (!target) return;
-
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    target.classList.add('highlight');
-    setTimeout(() => target.classList.remove('highlight'), 1500);
-  }
-
+  // Listen for incoming messages and render them
   socket.on('message', data => {
     const div = document.createElement('div');
-    div.className = 'message ' + (data.username === username ? 'self' : 'other');
+    div.className = 'message ' + (data.username === username ? 'self' : 'other') + ' message-animate';
     div.dataset.id = data.id;
     div.innerHTML = `
       <strong>${data.username}</strong>
-      <div class="msg-content">
-        ${data.reply_to_text ? `<div class="reply-quote" onclick="highlightMessage(${data.reply_to})"><strong>${data.reply_to_username}:</strong> ${data.reply_to_text}</div>` : ''}
-        ${data.message}
-      </div>
+      <span class="msg-content">${data.reply_to_text ? '<em>(reply)</em> ' : ''}${data.message}</span>
       ${data.image_url ? `<img src="${data.image_url}" class="chat-image" />` : ''}
       <small>${data.timestamp}</small>
       <div class="actions">
@@ -386,393 +404,38 @@
         ${data.username === username ? `<button onclick="deleteMessage(${data.id})">Delete</button>` : ''}
       </div>
     `;
-    const chatContainer = document.getElementById('chat-container');
-    chatContainer.appendChild(div);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    document.getElementById('chat-container').appendChild(div);
+    document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
   });
 
+  // Remove deleted message from DOM
   socket.on('message_deleted', data => {
     const elem = document.querySelector(`.message[data-id='${data.id}']`);
     if (elem) elem.remove();
   });
 
-  window.onload = () => {
-    const chatContainer = document.getElementById('chat-container');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  };
-</script>
-
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>MALLU PUBLIC CHAT IN KERALA</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      background: #F2F3F5;
-      color: #000;
-      font-size: 14px;
-    }
-
-    header {
-      background-color: #673AB7;
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 50px; /* Increased height */
-      padding: 0 16px; /* Added horizontal padding */
-      font-size: 16px; /* Larger font */
-      font-weight: 600;
-    }
-
-    #reply-banner {
-      display: none;
-      padding: 8px 12px;
-      background: #EDE7F6;
-      border-left: 4px solid #512DA8;
-      border-radius: 6px 6px 0 0;
-      font-size: 13px;
-      color: #333;
-      position: relative;
-      margin-bottom: -1px;
-    }
-
-    #reply-text {
-      font-weight: 500;
-      font-size: 13px;
-    }
-
-    #cancel-reply {
-      position: absolute;
-      right: 10px;
-      top: 6px;
-      background: none;
-      border: none;
-      font-size: 18px;
-      color: #512DA8;
-      cursor: pointer;
-    }
-
-    #chat-container {
-      padding: 8px 10px;
-      height: calc(100vh - 104px); /* Adjusted for taller header */
-      overflow-y: auto;
-    }
-
-    .message {
-      max-width: 80%;
-      margin-bottom: 8px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    .self {
-      background-color: #D1C4E9;
-      margin-left: auto;
-      border-bottom-right-radius: 0;
-    }
-
-    .other {
-      background-color: #fff;
-      margin-right: auto;
-      border-bottom-left-radius: 0;
-    }
-
-    .msg-content {
-      margin-top: 4px;
-    }
-
-    .chat-image {
-      max-height: 140px;
-      margin-top: 8px;
-      border-radius: 6px;
-    }
-
-    .message small {
-      display: block;
-      text-align: right;
-      font-size: 12px;
-      color: #555;
-      margin-top: 6px;
-    }
-
-    .actions {
-      margin-top: 5px;
-      display: flex;
-      gap: 5px;
-    }
-
-    .actions button {
-      padding: 3px 6px;
-      font-size: 12px;
-      border: none;
-      border-radius: 5px;
-      background: #eee;
-      cursor: pointer;
-    }
-
-    #input-area {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: #fff;
-      border-top: 1px solid #ccc;
-      padding: 6px 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      height: 54px;
-    }
-
-    #msg {
-      flex: 1;
-      padding: 6px 12px;
-      font-size: 15px;
-      border-radius: 16px;
-      border: 1px solid #ccc;
-      background: #f8f8f8;
-    }
-
-    label[for="file"] {
-      font-size: 18px;
-      color: #555;
-      cursor: pointer;
-    }
-
-    #file {
-      display: none;
-    }
-
-    #preview {
-      display: none;
-      max-width: 32px;
-      max-height: 32px;
-      border-radius: 5px;
-    }
-
-    #send-btn {
-      background: #673AB7;
-      color: white;
-      border: none;
-      width: 32px;
-      height: 32px;
-      font-size: 16px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    .reply-quote {
-      background-color: #F3E5F5;
-      border-left: 4px solid #7E57C2;
-      padding: 6px 10px;
-      font-size: 13px;
-      color: #333;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      cursor: pointer;
-    }
-
-    .message.highlight {
-      animation: pulse-highlight 1.5s ease-out;
-      box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.4);
-    }
-
-    @keyframes pulse-highlight {
-      0% { box-shadow: 0 0 0 0 rgba(103, 58, 183, 0.8); }
-      100% { box-shadow: 0 0 0 3px rgba(103, 58, 183, 0); }
-    }
-  </style>
-</head>
-<body>
-
-<header>
-  
-
-<div id="input-area">
-  <form id="msg-form" onsubmit="sendMessage(); return false;" style="display: flex; gap: 6px; align-items: center; width: 100%;">
-    <input type="text" id="msg" placeholder="Type your message..." autocomplete="off" />
-    <label for="file" title="Attach image">📎</label>
-    <input type="file" id="file" accept="image/*" onchange="previewImage()" />
-    <img id="preview" alt="Preview" />
-    <button id="send-btn" type="submit">➤</button>
-  </form>
-</div>
-
-<script>
-  const socket = io();
-  const username = "{{ username }}";
-  let replyToId = null;
-  let selectedImageBase64 = null;
-
+  // Update online user count
   socket.on('update_user_count', data => {
     document.getElementById('online-count').innerText = data.count;
+
+
   });
 
-  socket.emit('register_user', { username });
 
-  function previewImage() {
-    const file = document.getElementById('file').files[0];
-    if (!file) {
-      selectedImageBase64 = null;
-      document.getElementById('preview').style.display = 'none';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      selectedImageBase64 = e.target.result;
-      const preview = document.getElementById('preview');
-      preview.src = selectedImageBase64;
-      preview.style.display = 'inline';
-    };
-    reader.readAsDataURL(file);
-  }
+// Scroll chat container to bottom on page load
+window.onload = () => {
+  const chatContainer = document.getElementById('chat-container');
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+};
 
-  function sendMessage() {
-    const msgInput = document.getElementById('msg');
-    const msg = msgInput.value.trim();
 
-    if (selectedImageBase64) {
-      uploadImage(selectedImageBase64, () => {
-        if (msg) sendTextMessage(msg);
-      });
-      clearInputs();
-      return;
-    }
 
-    if (msg) {
-      sendTextMessage(msg);
-      clearInputs();
-    }
-  }
 
-  function sendTextMessage(message) {
-    socket.emit('message', {
-      username,
-      message,
-      reply_to: replyToId
-    });
-    replyToId = null;
-    document.getElementById('reply-banner').style.display = 'none';
-  }
 
-  function uploadImage(base64Data, callback) {
-    const blob = base64ToBlob(base64Data);
-    const formData = new FormData();
-    formData.append('file', blob, 'upload.png');
 
-    fetch('/upload', {
-      method: 'POST',
-      body: formData
-    }).then(res => {
-      if (res.ok && callback) callback();
-      else alert('Image upload failed.');
-    });
-  }
 
-  function base64ToBlob(base64) {
-    const arr = base64.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new Blob([u8arr], { type: mime });
-  }
-
-  function clearInputs() {
-    document.getElementById('msg').value = '';
-    document.getElementById('file').value = '';
-    selectedImageBase64 = null;
-    document.getElementById('preview').style.display = 'none';
-  }
-
-  function replyTo(id) {
-    replyToId = id;
-    const msgEl = document.querySelector(`.message[data-id="${id}"]`);
-    const sender = msgEl.querySelector('strong')?.innerText || 'User';
-
-    const replyTextElement = msgEl.querySelector('.msg-content');
-    let content = '';
-
-    if (replyTextElement) {
-      const cloned = replyTextElement.cloneNode(true);
-      cloned.querySelectorAll('.reply-quote, img').forEach(el => el.remove());
-      content = cloned.innerText.trim();
-    }
-
-    if (!content) content = '[media]';
-    if (content.length > 60) content = content.slice(0, 60) + '…';
-
-    document.getElementById('reply-text').innerHTML = `<strong>${sender}:</strong> ${content}`;
-    document.getElementById('reply-banner').style.display = 'block';
-  }
-
-  function cancelReply() {
-    replyToId = null;
-    document.getElementById('reply-banner').style.display = 'none';
-  }
-
-  function deleteMessage(id) {
-    socket.emit('delete_message', { id });
-  }
-
-  function highlightMessage(id) {
-    const target = document.querySelector(`.message[data-id="${id}"]`);
-    if (!target) return;
-
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    target.classList.add('highlight');
-    setTimeout(() => target.classList.remove('highlight'), 1500);
-  }
-
-  socket.on('message', data => {
-    const div = document.createElement('div');
-    div.className = 'message ' + (data.username === username ? 'self' : 'other');
-    div.dataset.id = data.id;
-    div.innerHTML = `
-      <strong>${data.username}</strong>
-      <div class="msg-content">
-        ${data.reply_to_text ? `<div class="reply-quote" onclick="highlightMessage(${data.reply_to})"><strong>${data.reply_to_username}:</strong> ${data.reply_to_text}</div>` : ''}
-        ${data.message}
-      </div>
-      ${data.image_url ? `<img src="${data.image_url}" class="chat-image" />` : ''}
-      <small>${data.timestamp}</small>
-      <div class="actions">
-        <button onclick="replyTo(${data.id})">Reply</button>
-        ${data.username === username ? `<button onclick="deleteMessage(${data.id})">Delete</button>` : ''}
-      </div>
-    `;
-    const chatContainer = document.getElementById('chat-container');
-    chatContainer.appendChild(div);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  });
-
-  socket.on('message_deleted', data => {
-    const elem = document.querySelector(`.message[data-id='${data.id}']`);
-    if (elem) elem.remove();
-  });
-
-  window.onload = () => {
-    const chatContainer = document.getElementById('chat-container');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  };
 </script>
+
 
 </body>
 </html>
