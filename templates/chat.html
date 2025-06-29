@@ -602,41 +602,7 @@
 <body>
 
 <header>
-  <div>MALLU PUBLIC CHAT</div>
-  <div style="display: flex; align-items: center; gap: 16px;">
-    <div><strong>{{ username }}</strong></div>
-    <div>🟢 <span id="online-count">1</span> Online</div>
-  </div>
-</header>
-
-<div id="reply-banner">
-  <span id="reply-text"></span>
-  <button id="cancel-reply" onclick="cancelReply()">×</button>
-</div>
-
-<div id="chat-container">
-  {% for msg in messages %}
-    <div class="message {% if msg[1] == username %}self{% else %}other{% endif %}" data-id="{{ msg[0] }}">
-      <strong>{{ msg[1] }}</strong>
-      <div class="msg-content">
-        {% if msg[4] %}
-          <div class="reply-quote" onclick="highlightMessage({{ msg[7] }})"><strong>{{ msg[6] }}:</strong> {{ msg[4] }}</div>
-        {% endif %}
-        {{ msg[2]|safe }}
-      </div>
-      {% if msg[5] %}
-        <img src="{{ msg[5] }}" class="chat-image" />
-      {% endif %}
-      <small>{{ msg[3] }}</small>
-      <div class="actions">
-        <button onclick="replyTo({{ msg[0] }})">Reply</button>
-        {% if msg[1] == username %}
-          <button onclick="deleteMessage({{ msg[0] }})">Delete</button>
-        {% endif %}
-      </div>
-    </div>
-  {% endfor %}
-</div>
+  
 
 <div id="input-area">
   <form id="msg-form" onsubmit="sendMessage(); return false;" style="display: flex; gap: 6px; align-items: center; width: 100%;">
@@ -810,4 +776,3 @@
 
 </body>
 </html>
-
