@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-200 to-purple-300 min-h-screen flex items-center justify-center px-4">
+  <div class="bg-white shadow-2xl rounded-3xl w-full max-w-md p-8 space-y-8">
+    <h2 class="text-3xl font-extrabold text-center text-gray-800">Create Your Account</h2>
+    <form method="POST" class="space-y-6">
+      <div>
+        <label for="phone" class="block mb-2 text-sm font-medium text-gray-600">Phone Number</label>
+        <input
+          type="tel"
+          name="phone"
+          id="phone"
+          pattern="[0-9]{10}"
+          maxlength="10"
+          placeholder="Enter 10-digit phone number"
+          required
+          class="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-transparent transition"
+        />
+      </div>
+      <div>
+        <label for="username" class="block mb-2 text-sm font-medium text-gray-600">Username</label>
+        <input
+          type="text"
+          name="username"
+          id="username"
+          placeholder="Choose a username"
+          required
+          class="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-transparent transition"
+        />
+      </div>
+      <button
+        type="submit"
+        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg transition duration-300"
+      >
+        Join Chat
+      </button>
+    </form>
+    <p class="text-center text-gray-500 text-sm">By signing up, you agree to our <a href="#" class="text-blue-600 underline hover:text-blue-800">Terms & Conditions</a></p>
+  </div>
+</body>
+</html>

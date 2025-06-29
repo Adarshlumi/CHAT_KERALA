@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MALLU PUBLIC CHAT IN KERALA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #F2F3F5;
+      color: #000;
+      font-size: 14px;
+    }
+
+    header {
+      background-color: #673AB7;
+      color: white;
+      padding: 6px 12px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 36px;
+    }
+
+    #reply-banner {
+      display: none;
+      padding: 8px 12px;
+      background: #EDE7F6;
+      border-left: 4px solid #512DA8;
+      border-radius: 6px 6px 0 0;
+      font-size: 13px;
+      color: #333;
+      position: relative;
+      margin-bottom: -1px;
+    }
+
+    #reply-text {
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    #cancel-reply {
+      position: absolute;
+      right: 10px;
+      top: 6px;
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: #512DA8;
+      cursor: pointer;
+    }
+
+    #chat-container {
+      padding: 8px 10px;
+      height: calc(100vh - 90px);
+      overflow-y: auto;
+    }
+
+    .message {
+      max-width: 80%;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .self {
+      background-color: #D1C4E9;
+      margin-left: auto;
+      border-bottom-right-radius: 0;
+    }
+
+    .other {
+      background-color: #fff;
+      margin-right: auto;
+      border-bottom-left-radius: 0;
+    }
+
+    .msg-content {
+      margin-top: 4px;
+    }
+
+    .chat-image {
+      max-height: 140px;
+      margin-top: 8px;
+      border-radius: 6px;
+    }
+
+    .message small {
+      display: block;
+      text-align: right;
+      font-size: 12px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    .actions {
+      margin-top: 5px;
+      display: flex;
+      gap: 5px;
+    }
+
+    .actions button {
+      padding: 3px 6px;
+      font-size: 12px;
+      border: none;
+      border-radius: 5px;
+      background: #eee;
+      cursor: pointer;
+    }
+
+    #input-area {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #fff;
+      border-top: 1px solid #ccc;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 54px;
+    }
+
+    #msg {
+      flex: 1;
+      padding: 6px 12px;
+      font-size: 15px;
+      border-radius: 16px;
+      border: 1px solid #ccc;
+      background: #f8f8f8;
+    }
+
+    label[for="file"] {
+      font-size: 18px;
+      color: #555;
+      cursor: pointer;
+    }
+
+    #file {
+      display: none;
+    }
+
+    #preview {
+      display: none;
+      max-width: 32px;
+      max-height: 32px;
+      border-radius: 5px;
+    }
+
+    #send-btn {
+      background: #673AB7;
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .reply-quote {
+      background-color: #F3E5F5;
+      border-left: 4px solid #7E57C2;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: #333;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      cursor: pointer;
+    }
+
+    .message.highlight {
+      animation: pulse-highlight 1.5s ease-out;
+      box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.4);
+    }
+
+    @keyframes pulse-highlight {
+      0% { box-shadow: 0 0 0 0 rgba(103, 58, 183, 0.8); }
+      100% { box-shadow: 0 0 0 3px rgba(103, 58, 183, 0); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div><strong>{{ username }}</strong> </div> 
+  <div>🟢 <span id="online-count">1</span> Online</div>
+</header>
+
+
+
+
+
+<div id="reply-banner">
+  <span id="reply-text"></span>
+  <button id="cancel-reply" onclick="cancelReply()">×</button>
+</div>
+
+<div id="chat-container">
+  {% for msg in messages %}
+    <div class="message {% if msg[1] == username %}self{% else %}other{% endif %}" data-id="{{ msg[0] }}">
+      <strong>{{ msg[1] }}</strong>
+      <div class="msg-content">
+        {% if msg[4] %}
+          <div class="reply-quote" onclick="highlightMessage({{ msg[7] }})"><strong>{{ msg[6] }}:</strong> {{ msg[4] }}</div>
+        {% endif %}
+        {{ msg[2]|safe }}
+      </div>
+      {% if msg[5] %}
+        <img src="{{ msg[5] }}" class="chat-image" />
+      {% endif %}
+      <small>{{ msg[3] }}</small>
+      <div class="actions">
+        <button onclick="replyTo({{ msg[0] }})">Reply</button>
+        {% if msg[1] == username %}
+          <button onclick="deleteMessage({{ msg[0] }})">Delete</button>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div id="input-area">
+  <form id="msg-form" onsubmit="sendMessage(); return false;" style="display: flex; gap: 6px; align-items: center; width: 100%;">
+    <input type="text" id="msg" placeholder="Type your message..." autocomplete="off" />
+    <label for="file" title="Attach image">📎</label>
+    <input type="file" id="file" accept="image/*" onchange="previewImage()" />
+    <img id="preview" alt="Preview" />
+    <button id="send-btn" type="submit">➤</button>
+  </form>
+</div>
+
+<script>
+  const socket = io();
+  const username = "{{ username }}";
+  let replyToId = null;
+  let selectedImageBase64 = null;
+
+  socket.on('update_user_count', data => {
+    document.getElementById('online-count').innerText = data.count;
+  });
+
+  socket.emit('register_user', { username });
+
+  function previewImage() {
+    const file = document.getElementById('file').files[0];
+    if (!file) {
+      selectedImageBase64 = null;
+      document.getElementById('preview').style.display = 'none';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      selectedImageBase64 = e.target.result;
+      const preview = document.getElementById('preview');
+      preview.src = selectedImageBase64;
+      preview.style.display = 'inline';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function sendMessage() {
+    const msgInput = document.getElementById('msg');
+    const msg = msgInput.value.trim();
+
+    if (selectedImageBase64) {
+      uploadImage(selectedImageBase64, () => {
+        if (msg) sendTextMessage(msg);
+      });
+      clearInputs();
+      return;
+    }
+
+    if (msg) {
+      sendTextMessage(msg);
+      clearInputs();
+    }
+  }
+
+  function sendTextMessage(message) {
+    socket.emit('message', {
+      username,
+      message,
+      reply_to: replyToId
+    });
+    replyToId = null;
+    document.getElementById('reply-banner').style.display = 'none';
+  }
+
+  function uploadImage(base64Data, callback) {
+    const blob = base64ToBlob(base64Data);
+    const formData = new FormData();
+    formData.append('file', blob, 'upload.png');
+
+    fetch('/upload', {
+      method: 'POST',
+      body: formData
+    }).then(res => {
+      if (res.ok && callback) callback();
+      else alert('Image upload failed.');
+    });
+  }
+
+  function base64ToBlob(base64) {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  function clearInputs() {
+    document.getElementById('msg').value = '';
+    document.getElementById('file').value = '';
+    selectedImageBase64 = null;
+    document.getElementById('preview').style.display = 'none';
+  }
+
+  function replyTo(id) {
+    replyToId = id;
+    const msgEl = document.querySelector(`.message[data-id="${id}"]`);
+    const sender = msgEl.querySelector('strong')?.innerText || 'User';
+
+    const replyTextElement = msgEl.querySelector('.msg-content');
+    let content = '';
+
+    if (replyTextElement) {
+      const cloned = replyTextElement.cloneNode(true);
+      cloned.querySelectorAll('.reply-quote, img').forEach(el => el.remove());
+      content = cloned.innerText.trim();
+    }
+
+    if (!content) content = '[media]';
+    if (content.length > 60) content = content.slice(0, 60) + '…';
+
+    document.getElementById('reply-text').innerHTML = `<strong>${sender}:</strong> ${content}`;
+    document.getElementById('reply-banner').style.display = 'block';
+  }
+
+  function cancelReply() {
+    replyToId = null;
+    document.getElementById('reply-banner').style.display = 'none';
+  }
+
+  function deleteMessage(id) {
+    socket.emit('delete_message', { id });
+  }
+
+  function highlightMessage(id) {
+    const target = document.querySelector(`.message[data-id="${id}"]`);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('highlight');
+    setTimeout(() => target.classList.remove('highlight'), 1500);
+  }
+
+  socket.on('message', data => {
+    const div = document.createElement('div');
+    div.className = 'message ' + (data.username === username ? 'self' : 'other');
+    div.dataset.id = data.id;
+    div.innerHTML = `
+      <strong>${data.username}</strong>
+      <div class="msg-content">
+        ${data.reply_to_text ? `<div class="reply-quote" onclick="highlightMessage(${data.reply_to})"><strong>${data.reply_to_username}:</strong> ${data.reply_to_text}</div>` : ''}
+        ${data.message}
+      </div>
+      ${data.image_url ? `<img src="${data.image_url}" class="chat-image" />` : ''}
+      <small>${data.timestamp}</small>
+      <div class="actions">
+        <button onclick="replyTo(${data.id})">Reply</button>
+        ${data.username === username ? `<button onclick="deleteMessage(${data.id})">Delete</button>` : ''}
+      </div>
+    `;
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.appendChild(div);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  });
+
+  socket.on('message_deleted', data => {
+    const elem = document.querySelector(`.message[data-id='${data.id}']`);
+    if (elem) elem.remove();
+  });
+
+  window.onload = () => {
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  };
+</script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MALLU PUBLIC CHAT IN KERALA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #F2F3F5;
+      color: #000;
+      font-size: 14px;
+    }
+
+    header {
+      background-color: #673AB7;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 50px; /* Increased height */
+      padding: 0 16px; /* Added horizontal padding */
+      font-size: 16px; /* Larger font */
+      font-weight: 600;
+    }
+
+    #reply-banner {
+      display: none;
+      padding: 8px 12px;
+      background: #EDE7F6;
+      border-left: 4px solid #512DA8;
+      border-radius: 6px 6px 0 0;
+      font-size: 13px;
+      color: #333;
+      position: relative;
+      margin-bottom: -1px;
+    }
+
+    #reply-text {
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    #cancel-reply {
+      position: absolute;
+      right: 10px;
+      top: 6px;
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: #512DA8;
+      cursor: pointer;
+    }
+
+    #chat-container {
+      padding: 8px 10px;
+      height: calc(100vh - 104px); /* Adjusted for taller header */
+      overflow-y: auto;
+    }
+
+    .message {
+      max-width: 80%;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .self {
+      background-color: #D1C4E9;
+      margin-left: auto;
+      border-bottom-right-radius: 0;
+    }
+
+    .other {
+      background-color: #fff;
+      margin-right: auto;
+      border-bottom-left-radius: 0;
+    }
+
+    .msg-content {
+      margin-top: 4px;
+    }
+
+    .chat-image {
+      max-height: 140px;
+      margin-top: 8px;
+      border-radius: 6px;
+    }
+
+    .message small {
+      display: block;
+      text-align: right;
+      font-size: 12px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    .actions {
+      margin-top: 5px;
+      display: flex;
+      gap: 5px;
+    }
+
+    .actions button {
+      padding: 3px 6px;
+      font-size: 12px;
+      border: none;
+      border-radius: 5px;
+      background: #eee;
+      cursor: pointer;
+    }
+
+    #input-area {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #fff;
+      border-top: 1px solid #ccc;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 54px;
+    }
+
+    #msg {
+      flex: 1;
+      padding: 6px 12px;
+      font-size: 15px;
+      border-radius: 16px;
+      border: 1px solid #ccc;
+      background: #f8f8f8;
+    }
+
+    label[for="file"] {
+      font-size: 18px;
+      color: #555;
+      cursor: pointer;
+    }
+
+    #file {
+      display: none;
+    }
+
+    #preview {
+      display: none;
+      max-width: 32px;
+      max-height: 32px;
+      border-radius: 5px;
+    }
+
+    #send-btn {
+      background: #673AB7;
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .reply-quote {
+      background-color: #F3E5F5;
+      border-left: 4px solid #7E57C2;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: #333;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      cursor: pointer;
+    }
+
+    .message.highlight {
+      animation: pulse-highlight 1.5s ease-out;
+      box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.4);
+    }
+
+    @keyframes pulse-highlight {
+      0% { box-shadow: 0 0 0 0 rgba(103, 58, 183, 0.8); }
+      100% { box-shadow: 0 0 0 3px rgba(103, 58, 183, 0); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>MALLU PUBLIC CHAT</div>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div><strong>{{ username }}</strong></div>
+    <div>🟢 <span id="online-count">1</span> Online</div>
+  </div>
+</header>
+
+<div id="reply-banner">
+  <span id="reply-text"></span>
+  <button id="cancel-reply" onclick="cancelReply()">×</button>
+</div>
+
+<div id="chat-container">
+  {% for msg in messages %}
+    <div class="message {% if msg[1] == username %}self{% else %}other{% endif %}" data-id="{{ msg[0] }}">
+      <strong>{{ msg[1] }}</strong>
+      <div class="msg-content">
+        {% if msg[4] %}
+          <div class="reply-quote" onclick="highlightMessage({{ msg[7] }})"><strong>{{ msg[6] }}:</strong> {{ msg[4] }}</div>
+        {% endif %}
+        {{ msg[2]|safe }}
+      </div>
+      {% if msg[5] %}
+        <img src="{{ msg[5] }}" class="chat-image" />
+      {% endif %}
+      <small>{{ msg[3] }}</small>
+      <div class="actions">
+        <button onclick="replyTo({{ msg[0] }})">Reply</button>
+        {% if msg[1] == username %}
+          <button onclick="deleteMessage({{ msg[0] }})">Delete</button>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div id="input-area">
+  <form id="msg-form" onsubmit="sendMessage(); return false;" style="display: flex; gap: 6px; align-items: center; width: 100%;">
+    <input type="text" id="msg" placeholder="Type your message..." autocomplete="off" />
+    <label for="file" title="Attach image">📎</label>
+    <input type="file" id="file" accept="image/*" onchange="previewImage()" />
+    <img id="preview" alt="Preview" />
+    <button id="send-btn" type="submit">➤</button>
+  </form>
+</div>
+
+<script>
+  const socket = io();
+  const username = "{{ username }}";
+  let replyToId = null;
+  let selectedImageBase64 = null;
+
+  socket.on('update_user_count', data => {
+    document.getElementById('online-count').innerText = data.count;
+  });
+
+  socket.emit('register_user', { username });
+
+  function previewImage() {
+    const file = document.getElementById('file').files[0];
+    if (!file) {
+      selectedImageBase64 = null;
+      document.getElementById('preview').style.display = 'none';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      selectedImageBase64 = e.target.result;
+      const preview = document.getElementById('preview');
+      preview.src = selectedImageBase64;
+      preview.style.display = 'inline';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function sendMessage() {
+    const msgInput = document.getElementById('msg');
+    const msg = msgInput.value.trim();
+
+    if (selectedImageBase64) {
+      uploadImage(selectedImageBase64, () => {
+        if (msg) sendTextMessage(msg);
+      });
+      clearInputs();
+      return;
+    }
+
+    if (msg) {
+      sendTextMessage(msg);
+      clearInputs();
+    }
+  }
+
+  function sendTextMessage(message) {
+    socket.emit('message', {
+      username,
+      message,
+      reply_to: replyToId
+    });
+    replyToId = null;
+    document.getElementById('reply-banner').style.display = 'none';
+  }
+
+  function uploadImage(base64Data, callback) {
+    const blob = base64ToBlob(base64Data);
+    const formData = new FormData();
+    formData.append('file', blob, 'upload.png');
+
+    fetch('/upload', {
+      method: 'POST',
+      body: formData
+    }).then(res => {
+      if (res.ok && callback) callback();
+      else alert('Image upload failed.');
+    });
+  }
+
+  function base64ToBlob(base64) {
+    const arr = base64.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  function clearInputs() {
+    document.getElementById('msg').value = '';
+    document.getElementById('file').value = '';
+    selectedImageBase64 = null;
+    document.getElementById('preview').style.display = 'none';
+  }
+
+  function replyTo(id) {
+    replyToId = id;
+    const msgEl = document.querySelector(`.message[data-id="${id}"]`);
+    const sender = msgEl.querySelector('strong')?.innerText || 'User';
+
+    const replyTextElement = msgEl.querySelector('.msg-content');
+    let content = '';
+
+    if (replyTextElement) {
+      const cloned = replyTextElement.cloneNode(true);
+      cloned.querySelectorAll('.reply-quote, img').forEach(el => el.remove());
+      content = cloned.innerText.trim();
+    }
+
+    if (!content) content = '[media]';
+    if (content.length > 60) content = content.slice(0, 60) + '…';
+
+    document.getElementById('reply-text').innerHTML = `<strong>${sender}:</strong> ${content}`;
+    document.getElementById('reply-banner').style.display = 'block';
+  }
+
+  function cancelReply() {
+    replyToId = null;
+    document.getElementById('reply-banner').style.display = 'none';
+  }
+
+  function deleteMessage(id) {
+    socket.emit('delete_message', { id });
+  }
+
+  function highlightMessage(id) {
+    const target = document.querySelector(`.message[data-id="${id}"]`);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('highlight');
+    setTimeout(() => target.classList.remove('highlight'), 1500);
+  }
+
+  socket.on('message', data => {
+    const div = document.createElement('div');
+    div.className = 'message ' + (data.username === username ? 'self' : 'other');
+    div.dataset.id = data.id;
+    div.innerHTML = `
+      <strong>${data.username}</strong>
+      <div class="msg-content">
+        ${data.reply_to_text ? `<div class="reply-quote" onclick="highlightMessage(${data.reply_to})"><strong>${data.reply_to_username}:</strong> ${data.reply_to_text}</div>` : ''}
+        ${data.message}
+      </div>
+      ${data.image_url ? `<img src="${data.image_url}" class="chat-image" />` : ''}
+      <small>${data.timestamp}</small>
+      <div class="actions">
+        <button onclick="replyTo(${data.id})">Reply</button>
+        ${data.username === username ? `<button onclick="deleteMessage(${data.id})">Delete</button>` : ''}
+      </div>
+    `;
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.appendChild(div);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  });
+
+  socket.on('message_deleted', data => {
+    const elem = document.querySelector(`.message[data-id='${data.id}']`);
+    if (elem) elem.remove();
+  });
+
+  window.onload = () => {
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  };
+</script>
+
+</body>
+</html>
