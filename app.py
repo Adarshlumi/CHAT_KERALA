@@ -214,6 +214,8 @@ def handle_stop_typing(data):
    # socketio.run(app, debug=True, port=8008)
 
 
-   if __name__ == '__main__':
-    app.run(debug=True)
+  if __name__ == '__main__':
+    init_db()
+    socketio.run(app, debug=True, port=8008)
+
 
