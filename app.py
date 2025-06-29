@@ -208,8 +208,7 @@ def handle_typing(data):
 def handle_stop_typing(data):
     emit('stop_typing', data, broadcast=True, include_self=False)
 
+# === Run app ===
 if __name__ == '__main__':
     init_db()
-    socketio.run(app, debug=True, port=8008)
-
-
+    socketio.run(app, debug=True, port=8000)
