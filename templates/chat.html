@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Chat</title>
+  <title>MALLU CHAT KERALA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <style>
@@ -182,7 +182,7 @@
 
 <header>
   <span>👤 {{ username }}</span> <h8>MALLU CHAT KERALA</h8>
-  <span>Online:<strong id="online-count">1</strong></span>
+  <span>Online: <strong id="online-count">1</strong></span>
 </header>
 
 <div id="reply-banner" onclick="scrollToReplyTarget()">
@@ -200,7 +200,7 @@
       <strong>{{ msg[1] }}</strong>
       {% if msg[4] %}
         <div class="reply-quote" onclick="scrollToMessage({{ msg[4] }})">
-          <em>Reply:</em> {{ msg[6] or '[Image]' }}
+          <em>Reply to {{ msg[7] or 'user' }}:</em> {{ msg[6] or '[Image]' }}
         </div>
       {% endif %}
       <span class="msg-content">{{ msg[2]|safe }}</span>
@@ -250,7 +250,7 @@
     const content = msgEl?.querySelector('.msg-content')?.innerText?.trim() || '';
     const image = msgEl?.querySelector('.chat-image');
 
-    document.getElementById('reply-author').innerText = author;
+    document.getElementById('reply-author').innerText = `Reply to: ${author}`;
 
     if (image && content) {
       document.getElementById('reply-text').innerText = content.slice(0, 80);
@@ -348,6 +348,9 @@
 
     fetch('/upload', {
       method: 'POST',
+      headers: {
+        'X-Reply-To': replyToId || ''
+      },
       body: formData
     }).then(res => {
       if (res.ok && callback) callback();
@@ -383,7 +386,7 @@
     div.dataset.id = data.id;
     div.innerHTML = `
       <strong>${data.username}</strong>
-      ${data.reply_to_text ? `<div class="reply-quote" onclick="scrollToMessage(${data.reply_to})"><em>Reply:</em> ${data.reply_to_text}</div>` : ''}
+      ${data.reply_to_text ? `<div class="reply-quote" onclick="scrollToMessage(${data.reply_to})"><em>Reply to ${data.reply_to_author || 'user'}:</em> ${data.reply_to_text}</div>` : ''}
       <span class="msg-content">${data.message}</span>
       ${data.image_url ? `<img src="${data.image_url}" class="chat-image" />` : ''}
       <small>${data.timestamp}</small>
@@ -407,30 +410,7 @@
   window.onload = () => {
     const chatContainer = document.getElementById('chat-container');
     chatContainer.scrollTop = chatContainer.scrollHeight;
-
-    
   };
-
-
-function uploadImage(base64Data, callback) {
-  const blob = base64ToBlob(base64Data);
-  const formData = new FormData();
-  formData.append('file', blob, 'upload.png');
-
-  fetch('/upload', {
-    method: 'POST',
-    headers: {
-      'X-Reply-To': replyToId || ''
-    },
-    body: formData
-  }).then(res => {
-    if (res.ok && callback) callback();
-  });
-}
-
-
-
-
 </script>
 
 </body>
