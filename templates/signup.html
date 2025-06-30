@@ -3,12 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Signup</title>
+  <title>MALLU CHAT KERALA - Signup</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-200 to-purple-300 min-h-screen flex items-center justify-center px-4">
-  <div class="bg-white shadow-2xl rounded-3xl w-full max-w-md p-8 space-y-8">
-    <h2 class="text-3xl font-extrabold text-center text-gray-800">Create Your Account</h2>
+<body class="bg-gradient-to-br from-indigo-200 via-purple-300 to-pink-200 min-h-screen flex flex-col items-center justify-center px-4 font-sans">
+
+  <!-- MODERN PAGE HEADING -->
+  <div class="text-center mb-6">
+    <h1 class="text-5xl font-extrabold text-white drop-shadow-lg flex items-center justify-center gap-3">
+      <span>💬</span> MALLU CHAT KERALA
+    </h1>
+    <p class="text-white text-sm mt-2 opacity-80">Connect with friends in your own style ✨</p>
+  </div>
+
+  <!-- CARD -->
+  <div class="bg-white bg-opacity-90 backdrop-blur-sm shadow-2xl rounded-3xl w-full max-w-md p-8 space-y-8 border border-gray-200">
+    <h2 class="text-2xl font-bold text-center text-gray-800">Create Your Account</h2>
+
     <form method="POST" class="space-y-6">
       <div>
         <label for="phone" class="block mb-2 text-sm font-medium text-gray-600">Phone Number</label>
@@ -20,9 +31,10 @@
           maxlength="10"
           placeholder="Enter 10-digit phone number"
           required
-          class="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-transparent transition"
+          class="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-purple-400 focus:border-transparent transition"
         />
       </div>
+
       <div>
         <label for="username" class="block mb-2 text-sm font-medium text-gray-600">Username</label>
         <input
@@ -31,17 +43,23 @@
           id="username"
           placeholder="Choose a username"
           required
-          class="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-transparent transition"
+          class="w-full px-5 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-purple-400 focus:border-transparent transition"
         />
       </div>
+
       <button
         type="submit"
-        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg transition duration-300"
+        class="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-semibold py-3 rounded-xl shadow-lg transition duration-300"
       >
-        Join Chat
+        🚀 Join Chat
       </button>
     </form>
-    <p class="text-center text-gray-500 text-sm">By signing up, you agree to our <a href="#" class="text-blue-600 underline hover:text-blue-800">Terms & Conditions</a></p>
+
+    <p class="text-center text-gray-500 text-sm">
+      By signing up, you agree to our
+      <a href="#" class="text-purple-600 underline hover:text-purple-800">Terms & Conditions</a>
+    </p>
   </div>
+
 </body>
 </html>
