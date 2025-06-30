@@ -21,12 +21,10 @@ if not os.path.exists(UPLOAD_FOLDER):
 connected_users = set()
 user_sid_map = {}
 
-# Utility to get current India time string
 def india_now_str():
     dt = datetime.utcnow() + timedelta(hours=5, minutes=30)
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
-# Initialize DB (create tables and add missing columns)
 def init_db():
     with sqlite3.connect("database.db", check_same_thread=False) as conn:
         conn.execute('''
@@ -49,7 +47,6 @@ def init_db():
         ''')
         conn.commit()
 
-# === Socket.IO handlers for user connect/disconnect and count update ===
 @socketio.on('register_user')
 def register_user(data):
     username = data.get('username')
@@ -66,7 +63,6 @@ def handle_disconnect():
         user_sid_map.pop(request.sid, None)
         socketio.emit('update_user_count', {'count': len(connected_users)})
 
-# === Routes ===
 @app.route('/', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -98,7 +94,19 @@ def chat():
         except sqlite3.OperationalError:
             pass
 
-        cur.execute("SELECT id, username, message, timestamp, reply_to, image_url FROM messages WHERE deleted = 0 ORDER BY timestamp ASC")
+        cur.execute("""
+            SELECT 
+                m.id, 
+                m.username, 
+                m.message, 
+                m.timestamp, 
+                (SELECT message FROM messages WHERE id = m.reply_to), 
+                m.image_url,
+                m.reply_to
+            FROM messages m 
+            WHERE m.deleted = 0 
+            ORDER BY m.timestamp ASC
+        """)
         messages = cur.fetchall()
 
     return render_template('chat.html', username=session['username'], messages=messages)
@@ -113,54 +121,77 @@ def upload():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
+
     image_url = url_for('uploaded_file', filename=filename)
     username = session.get('username', 'Unknown')
     timestamp = india_now_str()
+
+    reply_to = request.headers.get('X-Reply-To')
+    reply_to = int(reply_to) if reply_to and reply_to.isdigit() else None
+
+    reply_to_text = None
     with sqlite3.connect("database.db", check_same_thread=False) as conn:
-        conn.execute(
+        cur = conn.cursor()
+        if reply_to:
+            cur.execute("SELECT message, image_url FROM messages WHERE id = ?", (reply_to,))
+            row = cur.fetchone()
+            if row:
+                reply_msg = row[0].strip() if row[0] else ''
+                reply_to_text = reply_msg if reply_msg else '[Image]'
+
+        cur.execute(
             "INSERT INTO messages (username, message, timestamp, reply_to, deleted, image_url) VALUES (?, ?, ?, ?, ?, ?)",
-            (username, '', timestamp, None, 0, image_url)
+            (username, '', timestamp, reply_to, 0, image_url)
         )
+        msg_id = cur.lastrowid
         conn.commit()
+
     socketio.emit('message', {
-        'id': None,
+        'id': msg_id,
         'username': username,
         'message': '',
         'timestamp': timestamp,
-        'reply_to': None,
-        'reply_to_text': None,
+        'reply_to': reply_to,
+        'reply_to_text': reply_to_text,
+        'reply_to_id': reply_to,
         'image_url': image_url
     })
+
     return '', 204
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# === Socket.IO message events ===
 @socketio.on('message')
 def handle_message(data):
     username = data.get('username')
     message = data.get('message')
     reply_to = data.get('reply_to')
-    if not username or not message:
+    if not username or (not message and not data.get('image_url')):
         return
     ts = india_now_str()
+
     reply_to_text = None
+    reply_to_image_url = None
+
     with sqlite3.connect("database.db", check_same_thread=False) as conn:
+        cur = conn.cursor()
         if reply_to:
-            cur = conn.cursor()
-            cur.execute("SELECT message FROM messages WHERE id = ?", (reply_to,))
+            cur.execute("SELECT message, image_url FROM messages WHERE id = ?", (reply_to,))
             row = cur.fetchone()
             if row:
-                reply_to_text = row[0]
-        cur = conn.cursor()
+                reply_msg = row[0].strip() if row[0] else ''
+                reply_to_text = reply_msg if reply_msg else '[Image]'
+                reply_to_image_url = row[1] if not reply_msg else None
+
         cur.execute(
             "INSERT INTO messages (username, message, timestamp, reply_to, deleted) VALUES (?, ?, ?, ?, 0)",
             (username.strip(), message.strip(), ts, reply_to)
         )
         msg_id = cur.lastrowid
         conn.commit()
+
     socketio.emit('message', {
         'id': msg_id,
         'username': username,
@@ -168,6 +199,7 @@ def handle_message(data):
         'timestamp': ts,
         'reply_to': reply_to,
         'reply_to_text': reply_to_text,
+        'reply_to_id': reply_to,
         'image_url': None
     })
 
@@ -189,7 +221,14 @@ def handle_typing(data):
 def handle_stop_typing(data):
     emit('stop_typing', data, broadcast=True, include_self=False)
 
-# === Run app ===
+
+
+
+
+#if __name__ == '__main__':
+   # init_db()
+    #socketio.run(app, debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 10001)))
+
 
 
 # === Run app ===
