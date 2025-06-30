@@ -102,7 +102,8 @@ def chat():
                 m.timestamp, 
                 (SELECT message FROM messages WHERE id = m.reply_to), 
                 m.image_url,
-                m.reply_to
+                m.reply_to,
+                (SELECT username FROM messages WHERE id = m.reply_to)
             FROM messages m 
             WHERE m.deleted = 0 
             ORDER BY m.timestamp ASC
@@ -130,14 +131,16 @@ def upload():
     reply_to = int(reply_to) if reply_to and reply_to.isdigit() else None
 
     reply_to_text = None
+    reply_to_author = None
     with sqlite3.connect("database.db", check_same_thread=False) as conn:
         cur = conn.cursor()
         if reply_to:
-            cur.execute("SELECT message, image_url FROM messages WHERE id = ?", (reply_to,))
+            cur.execute("SELECT message, image_url, username FROM messages WHERE id = ?", (reply_to,))
             row = cur.fetchone()
             if row:
                 reply_msg = row[0].strip() if row[0] else ''
                 reply_to_text = reply_msg if reply_msg else '[Image]'
+                reply_to_author = row[2]
 
         cur.execute(
             "INSERT INTO messages (username, message, timestamp, reply_to, deleted, image_url) VALUES (?, ?, ?, ?, ?, ?)",
@@ -153,7 +156,7 @@ def upload():
         'timestamp': timestamp,
         'reply_to': reply_to,
         'reply_to_text': reply_to_text,
-        'reply_to_id': reply_to,
+        'reply_to_author': reply_to_author,
         'image_url': image_url
     })
 
@@ -173,17 +176,17 @@ def handle_message(data):
     ts = india_now_str()
 
     reply_to_text = None
-    reply_to_image_url = None
+    reply_to_author = None
 
     with sqlite3.connect("database.db", check_same_thread=False) as conn:
         cur = conn.cursor()
         if reply_to:
-            cur.execute("SELECT message, image_url FROM messages WHERE id = ?", (reply_to,))
+            cur.execute("SELECT message, image_url, username FROM messages WHERE id = ?", (reply_to,))
             row = cur.fetchone()
             if row:
                 reply_msg = row[0].strip() if row[0] else ''
                 reply_to_text = reply_msg if reply_msg else '[Image]'
-                reply_to_image_url = row[1] if not reply_msg else None
+                reply_to_author = row[2]
 
         cur.execute(
             "INSERT INTO messages (username, message, timestamp, reply_to, deleted) VALUES (?, ?, ?, ?, 0)",
@@ -199,7 +202,7 @@ def handle_message(data):
         'timestamp': ts,
         'reply_to': reply_to,
         'reply_to_text': reply_to_text,
-        'reply_to_id': reply_to,
+        'reply_to_author': reply_to_author,
         'image_url': None
     })
 
@@ -223,11 +226,6 @@ def handle_stop_typing(data):
 
 
 
-
-
-#if __name__ == '__main__':
-   # init_db()
-    #socketio.run(app, debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 10001)))
 
 
 
