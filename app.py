@@ -98,18 +98,7 @@ def chat():
         except sqlite3.OperationalError:
             pass
 
-        cur.execute("""
-            SELECT 
-                m1.id, m1.username, m1.message, m1.timestamp, 
-                m2.message as reply_to_text,
-                m1.image_url,
-                m2.username as reply_to_username,
-                m1.reply_to
-            FROM messages m1
-            LEFT JOIN messages m2 ON m1.reply_to = m2.id
-            WHERE m1.deleted = 0
-            ORDER BY m1.timestamp ASC
-        """)
+        cur.execute("SELECT id, username, message, timestamp, reply_to, image_url FROM messages WHERE deleted = 0 ORDER BY timestamp ASC")
         messages = cur.fetchall()
 
     return render_template('chat.html', username=session['username'], messages=messages)
@@ -140,7 +129,6 @@ def upload():
         'timestamp': timestamp,
         'reply_to': None,
         'reply_to_text': None,
-        'reply_to_username': None,
         'image_url': image_url
     })
     return '', 204
@@ -157,20 +145,15 @@ def handle_message(data):
     reply_to = data.get('reply_to')
     if not username or not message:
         return
-
     ts = india_now_str()
     reply_to_text = None
-    reply_to_username = None
-
     with sqlite3.connect("database.db", check_same_thread=False) as conn:
         if reply_to:
             cur = conn.cursor()
-            cur.execute("SELECT username, message FROM messages WHERE id = ?", (reply_to,))
+            cur.execute("SELECT message FROM messages WHERE id = ?", (reply_to,))
             row = cur.fetchone()
             if row:
-                reply_to_username = row[0]
-                reply_to_text = row[1]
-
+                reply_to_text = row[0]
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO messages (username, message, timestamp, reply_to, deleted) VALUES (?, ?, ?, ?, 0)",
@@ -178,7 +161,6 @@ def handle_message(data):
         )
         msg_id = cur.lastrowid
         conn.commit()
-
     socketio.emit('message', {
         'id': msg_id,
         'username': username,
@@ -186,7 +168,6 @@ def handle_message(data):
         'timestamp': ts,
         'reply_to': reply_to,
         'reply_to_text': reply_to_text,
-        'reply_to_username': reply_to_username,
         'image_url': None
     })
 
@@ -207,6 +188,9 @@ def handle_typing(data):
 @socketio.on('stop_typing')
 def handle_stop_typing(data):
     emit('stop_typing', data, broadcast=True, include_self=False)
+
+# === Run app ===
+
 
 # === Run app ===
 if __name__ == '__main__':
