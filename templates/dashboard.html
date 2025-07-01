@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-6">
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">📊 Stranger Video Chat - Admin Dashboard</h1>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div class="bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold">Connected Users</h2>
+        <p id="connectedCount" class="text-4xl mt-2 font-bold text-green-400">0</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold">Waiting Users</h2>
+        <p id="waitingCount" class="text-4xl mt-2 font-bold text-yellow-400">0</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold">Active Rooms</h2>
+        <p id="roomCount" class="text-4xl mt-2 font-bold text-blue-400">0</p>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow mb-10">
+      <h2 class="text-xl font-semibold mb-4">Live User Stats</h2>
+      <canvas id="userChart" height="120"></canvas>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4">Active Connections</h2>
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="text-gray-400 border-b border-gray-700">
+            <th class="py-2">Socket ID</th>
+            <th>Room</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Socket.IO + Chart Script -->
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    socket.emit('admin_connect');
+
+    const connectedEl = document.getElementById("connectedCount");
+    const waitingEl = document.getElementById("waitingCount");
+    const roomEl = document.getElementById("roomCount");
+    const tableBody = document.getElementById("userTableBody");
+
+    const labels = [];
+    const connectedData = [];
+
+    const ctx = document.getElementById("userChart").getContext("2d");
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Connected Users",
+          data: connectedData,
+          fill: false,
+          borderColor: "#34D399",
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
+      }
+    });
+
+    socket.on('admin_update', data => {
+      const { users, waiting, rooms } = data;
+      connectedEl.textContent = users.length;
+      waitingEl.textContent = waiting.length;
+      roomEl.textContent = Object.keys(rooms).length / 2; // 2 users per room
+
+      const time = new Date().toLocaleTimeString();
+      labels.push(time);
+      connectedData.push(users.length);
+
+      if (labels.length > 10) {
+        labels.shift();
+        connectedData.shift();
+      }
+
+      chart.update();
+
+      // Update table
+      tableBody.innerHTML = "";
+      users.forEach(uid => {
+        const room = rooms[uid] || "-";
+        const row = `<tr><td class="py-1">${uid}</td><td>${room}</td></tr>`;
+        tableBody.innerHTML += row;
+      });
+    });
+  </script>
+</body>
+</html>
