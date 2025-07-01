@@ -1,228 +1,154 @@
-from flask import Flask, render_template, request, redirect, session, send_from_directory, url_for
-from flask_socketio import SocketIO, emit
-import sqlite3
+from flask import Flask, render_template, send_from_directory, request, redirect, url_for, session
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
-from datetime import datetime, timedelta
-from werkzeug.utils import secure_filename
 
-# === App Setup ===
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', manage_session=False)
+socketio = SocketIO(app)
 
-# === Upload Config ===
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
+# ==== Configuration ====
+admin_username = 'adarsh@123'
+admin_password = 'ad#.85678'
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
+# ==== State ====
+waiting_users = []
+rooms = {}
 connected_users = set()
-user_sid_map = {}
 
-def india_now_str():
-    dt = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    return dt.strftime('%Y-%m-%d %H:%M:%S')
+# ==== Routes ====
 
-def init_db():
-    with sqlite3.connect("database.db", check_same_thread=False) as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                phone TEXT UNIQUE,
-                username TEXT
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT,
-                message TEXT,
-                timestamp TEXT,
-                reply_to INTEGER,
-                deleted INTEGER DEFAULT 0,
-                image_url TEXT
-            )
-        ''')
-        conn.commit()
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-@socketio.on('register_user')
-def register_user(data):
-    username = data.get('username')
-    if username:
-        connected_users.add(username)
-        user_sid_map[request.sid] = username
-        socketio.emit('update_user_count', {'count': len(connected_users)})
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('static', 'manifest.json')
+
+@app.route('/service-worker.js')
+def sw():
+    return send_from_directory('static', 'service-worker.js')
+
+@app.route('/icons/<filename>')
+def icons(filename):
+    return send_from_directory(os.path.join('static', 'icons'), filename)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static/icons', 'icon-192.png')
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username == admin_username and password == admin_password:
+            session['admin'] = True
+            return redirect('/dashboard')
+        return render_template('admin.html', error="Invalid credentials")
+    return render_template('admin.html')
+
+@app.route('/dashboard')
+def admin_dashboard():
+    if not session.get('admin'):
+        return redirect('/admin')
+    return render_template('dashboard.html', users=connected_users, rooms=rooms, waiting=waiting_users)
+
+@app.route('/logout')
+def logout():
+    session.pop('admin', None)
+    return redirect('/admin')
+
+# ==== Admin Update Broadcaster ====
+
+def emit_admin_update():
+    socketio.emit('admin_update', {
+        'users': list(connected_users),
+        'waiting': waiting_users,
+        'rooms': rooms
+    })
+
+# ==== Socket.IO Events ====
+
+@socketio.on('connect')
+def handle_connect():
+    print(f"[+] User connected: {request.sid}")
+    connected_users.add(request.sid)
+    emit_admin_update()
+
+@socketio.on('admin_connect')
+def handle_admin_connect():
+    emit_admin_update()
+
+@socketio.on('find_stranger')
+def handle_find_stranger():
+    print(f"[+] {request.sid} is looking for a stranger...")
+    if waiting_users:
+        partner_sid = waiting_users.pop(0)
+        room = f"room_{partner_sid}_{request.sid}"
+
+        join_room(room, sid=partner_sid)
+        join_room(room, sid=request.sid)
+
+        rooms[request.sid] = room
+        rooms[partner_sid] = room
+
+        print(f"[\u2713] Matched {request.sid} with {partner_sid} in room {room}")
+        emit('stranger_found', False, to=partner_sid)
+        emit('stranger_found', True, to=request.sid)
+    else:
+        waiting_users.append(request.sid)
+        print(f"[-] No match found. {request.sid} added to waiting_users.")
+
+    emit_admin_update()
+
+@socketio.on('offer')
+def handle_offer(offer):
+    room = rooms.get(request.sid)
+    if room:
+        emit('offer', offer, room=room, include_self=False)
+
+@socketio.on('answer')
+def handle_answer(answer):
+    room = rooms.get(request.sid)
+    if room:
+        emit('answer', answer, room=room, include_self=False)
+
+@socketio.on('ice_candidate')
+def handle_ice(candidate):
+    room = rooms.get(request.sid)
+    if room:
+        emit('ice_candidate', candidate, room=room, include_self=False)
+
+@socketio.on('chat_message')
+def handle_chat_message(message):
+    room = rooms.get(request.sid)
+    if room:
+        emit('chat_message', message, room=room, include_self=False)
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    username = user_sid_map.get(request.sid)
-    if username and username in connected_users:
-        connected_users.remove(username)
-        user_sid_map.pop(request.sid, None)
-        socketio.emit('update_user_count', {'count': len(connected_users)})
+    sid = request.sid
+    print(f"[x] {sid} disconnected")
 
-@app.route('/', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        phone = request.form['phone']
-        username = request.form['username']
-        with sqlite3.connect("database.db", check_same_thread=False) as conn:
-            try:
-                conn.execute("INSERT INTO users (phone, username) VALUES (?, ?)", (phone, username))
-                conn.commit()
-            except sqlite3.IntegrityError:
-                pass
-        session['username'] = username
-        return redirect('/chat')
-    return render_template('signup.html')
+    connected_users.discard(sid)
 
-@app.route('/chat')
-def chat():
-    if 'username' not in session:
-        return redirect('/')
+    if sid in waiting_users:
+        waiting_users.remove(sid)
+        print(f"[~] {sid} removed from waiting queue")
 
-    cutoff = (datetime.utcnow() + timedelta(hours=5, minutes=30)) - timedelta(days=1)
-    cutoff_str = cutoff.strftime('%Y-%m-%d %H:%M:%S')
+    room = rooms.pop(sid, None)
+    if room:
+        emit('stranger_disconnected', room=room, include_self=False)
+        for other_sid in list(rooms):
+            if rooms[other_sid] == room:
+                rooms.pop(other_sid, None)
+        leave_room(room)
 
-    with sqlite3.connect("database.db", check_same_thread=False) as conn:
-        cur = conn.cursor()
-        try:
-            cur.execute("DELETE FROM messages WHERE timestamp < ?", (cutoff_str,))
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass
+    emit_admin_update()
 
-        cur.execute("""
-            SELECT 
-                m.id, 
-                m.username, 
-                m.message, 
-                m.timestamp, 
-                (SELECT message FROM messages WHERE id = m.reply_to), 
-                m.image_url,
-                m.reply_to,
-                (SELECT username FROM messages WHERE id = m.reply_to)
-            FROM messages m 
-            WHERE m.deleted = 0 
-            ORDER BY m.timestamp ASC
-        """)
-        messages = cur.fetchall()
 
-    return render_template('chat.html', username=session['username'], messages=messages)
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'file' not in request.files:
-        return 'No file uploaded', 400
-    file = request.files['file']
-    if file.filename == '':
-        return 'Empty filename', 400
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-
-    image_url = url_for('uploaded_file', filename=filename)
-    username = session.get('username', 'Unknown')
-    timestamp = india_now_str()
-
-    reply_to = request.headers.get('X-Reply-To')
-    reply_to = int(reply_to) if reply_to and reply_to.isdigit() else None
-
-    reply_to_text = None
-    reply_to_author = None
-    with sqlite3.connect("database.db", check_same_thread=False) as conn:
-        cur = conn.cursor()
-        if reply_to:
-            cur.execute("SELECT message, image_url, username FROM messages WHERE id = ?", (reply_to,))
-            row = cur.fetchone()
-            if row:
-                reply_msg = row[0].strip() if row[0] else ''
-                reply_to_text = reply_msg if reply_msg else '[Image]'
-                reply_to_author = row[2]
-
-        cur.execute(
-            "INSERT INTO messages (username, message, timestamp, reply_to, deleted, image_url) VALUES (?, ?, ?, ?, ?, ?)",
-            (username, '', timestamp, reply_to, 0, image_url)
-        )
-        msg_id = cur.lastrowid
-        conn.commit()
-
-    socketio.emit('message', {
-        'id': msg_id,
-        'username': username,
-        'message': '',
-        'timestamp': timestamp,
-        'reply_to': reply_to,
-        'reply_to_text': reply_to_text,
-        'reply_to_author': reply_to_author,
-        'image_url': image_url
-    })
-
-    return '', 204
-
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-@socketio.on('message')
-def handle_message(data):
-    username = data.get('username')
-    message = data.get('message')
-    reply_to = data.get('reply_to')
-    if not username or (not message and not data.get('image_url')):
-        return
-    ts = india_now_str()
-
-    reply_to_text = None
-    reply_to_author = None
-
-    with sqlite3.connect("database.db", check_same_thread=False) as conn:
-        cur = conn.cursor()
-        if reply_to:
-            cur.execute("SELECT message, image_url, username FROM messages WHERE id = ?", (reply_to,))
-            row = cur.fetchone()
-            if row:
-                reply_msg = row[0].strip() if row[0] else ''
-                reply_to_text = reply_msg if reply_msg else '[Image]'
-                reply_to_author = row[2]
-
-        cur.execute(
-            "INSERT INTO messages (username, message, timestamp, reply_to, deleted) VALUES (?, ?, ?, ?, 0)",
-            (username.strip(), message.strip(), ts, reply_to)
-        )
-        msg_id = cur.lastrowid
-        conn.commit()
-
-    socketio.emit('message', {
-        'id': msg_id,
-        'username': username,
-        'message': message,
-        'timestamp': ts,
-        'reply_to': reply_to,
-        'reply_to_text': reply_to_text,
-        'reply_to_author': reply_to_author,
-        'image_url': None
-    })
-
-@socketio.on('delete_message')
-def delete_message(data):
-    msg_id = data.get('id')
-    if not msg_id:
-        return
-    with sqlite3.connect("database.db", check_same_thread=False) as conn:
-        conn.execute("UPDATE messages SET deleted = 1 WHERE id = ?", (msg_id,))
-        conn.commit()
-    socketio.emit('message_deleted', { 'id': msg_id })
-
-@socketio.on('typing')
-def handle_typing(data):
-    emit('typing', data, broadcast=True, include_self=False)
-
-@socketio.on('stop_typing')
-def handle_stop_typing(data):
-    emit('stop_typing', data, broadcast=True, include_self=False)
 
 
 
