@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stranger Video Chat</title>
+
+  <!-- PWA Support -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1db954" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Tailwind CSS for modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    video {
+      border-radius: 1rem;
+      background-color: black;
+    }
+    #chatMessages {
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    #loader {
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-black to-gray-900 text-white min-h-screen flex items-center justify-center px-4">
+
+  <!-- Loader -->
+  <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-12 h-12 border-4 border-green-500 border-dashed rounded-full animate-spin mb-4"></div>
+    <p class="text-lg">Finding a stranger...</p>
+  </div>
+
+  <!-- Main Container -->
+  <div class="w-full max-w-xl bg-white bg-opacity-5 p-6 rounded-2xl shadow-xl flex flex-col items-center">
+    <h1 class="text-3xl font-bold mb-3 text-center">🎥 Stranger Video Call</h1>
+    <p id="statusBar" class="text-yellow-400 font-medium mb-4">🔄 Status: Waiting...</p>
+
+    <!-- Videos -->
+    <div id="videos" class="flex flex-col gap-4 w-full">
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow"></video>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex gap-2 mt-4 flex-wrap justify-center">
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 px-4 py-2 rounded-full">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 px-4 py-2 rounded-full">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 px-4 py-2 rounded-full">🔴 Disconnect</button>
+    </div>
+
+    <!-- Chat -->
+    <div class="w-full mt-6">
+      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-lg h-32 text-sm space-y-2 mb-2"></div>
+      <div class="flex gap-2">
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none" />
+        <button onclick="sendMessage()" class="bg-green-600 px-4 py-2 rounded-full">Send</button>
+      </div>
+    </div>
+
+    <!-- Connect Button -->
+    <button onclick="findStranger()" class="mt-6 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-lg font-semibold shadow-lg">
+      🔄 Connect to Stranger
+    </button>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    let localStream, peerConnection;
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const loader = document.getElementById('loader');
+    const statusBar = document.getElementById('statusBar');
+    const micBtn = document.getElementById('micBtn');
+    const camBtn = document.getElementById('camBtn');
+
+    let isMicOn = true, isCamOn = true;
+
+    function updateStatus(msg, color = "text-yellow-400") {
+      statusBar.textContent = `🔄 Status: ${msg}`;
+      statusBar.className = `font-medium mb-4 ${color}`;
+    }
+
+    async function getMedia() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+    }
+
+    async function findStranger() {
+      chatMessages.innerHTML = '';
+      loader.classList.remove("hidden");
+      updateStatus("Searching...");
+      await getMedia();
+      socket.emit('find_stranger');
+    }
+
+    function sendMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      appendMessage("You", msg);
+      socket.emit('chat_message', msg);
+      chatInput.value = '';
+    }
+
+    function appendMessage(sender, text) {
+      const div = document.createElement("div");
+      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function toggleMic() {
+      isMicOn = !isMicOn;
+      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+      micBtn.textContent = isMicOn ? "🎤 Mute" : "🔇 Unmute";
+    }
+
+    function toggleCam() {
+      isCamOn = !isCamOn;
+      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
+      camBtn.textContent = isCamOn ? "📷 Camera Off" : "📵 Camera On";
+    }
+
+    function disconnectCall() {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+        remoteVideo.srcObject = null;
+        updateStatus("Disconnected.", "text-red-400");
+      }
+    }
+
+    socket.on('stranger_found', async (isCaller) => {
+      loader.classList.add("hidden");
+      updateStatus("Connected ✅", "text-green-400");
+
+      peerConnection = new RTCPeerConnection(config);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
+      peerConnection.onicecandidate = e => e.candidate && socket.emit('ice_candidate', e.candidate);
+
+      if (isCaller) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('offer', offer);
+      }
+    });
+
+    socket.on('offer', async (offer) => {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('answer', answer);
+    });
+
+    socket.on('answer', (answer) => {
+      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socket.on('ice_candidate', (candidate) => {
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    });
+
+    socket.on('chat_message', (msg) => {
+      appendMessage("Stranger", msg);
+    });
+
+    socket.on('stranger_disconnected', () => {
+      remoteVideo.srcObject = null;
+      updateStatus("Stranger disconnected", "text-red-400");
+    });
+
+    // PWA service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('Service Worker Registered ✅'))
+        .catch(err => console.error('SW registration failed ❌', err));
+    }
+  </script>
+</body>
+</html>
