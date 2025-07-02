@@ -4,18 +4,25 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from uuid import uuid4
 import os
 from dotenv import load_dotenv
+from flask_session import Session
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = os.getenv("FLASK_SECRET_KEY")
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or 'supersecret'
+
+# ==== Session Config ====
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+Session(app)
 
 # ==== Redis-safe SocketIO configuration ====
 redis_url = os.getenv("REDIS_URL")
 try:
     if redis_url:
-        import redis  # This will raise ImportError if Redis isn't installed
+        import redis
         socketio = SocketIO(app, async_mode='eventlet', message_queue=redis_url)
     else:
         socketio = SocketIO(app, async_mode='eventlet')
@@ -24,8 +31,9 @@ except ImportError:
     socketio = SocketIO(app, async_mode='eventlet')
 
 # ==== Configuration ====
-admin_username = os.getenv("ADMIN_USERNAME")
-admin_password_hash = generate_password_hash(os.getenv("ADMIN_PASSWORD"))
+admin_username = os.getenv("ADMIN_USERNAME") or "admin"
+admin_password = os.getenv("ADMIN_PASSWORD") or "admin123"
+admin_password_hash = generate_password_hash(admin_password)
 
 # ==== In-memory state ====
 waiting_users = []
@@ -57,8 +65,10 @@ def favicon():
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        if not username or not password:
+            return render_template('admin.html', error="Please enter both username and password")
         if username == admin_username and check_password_hash(admin_password_hash, password):
             session['admin'] = True
             return redirect('/dashboard')
@@ -76,13 +86,9 @@ def logout():
     session.pop('admin', None)
     return redirect('/admin')
 
-
 @app.route('/sitemap.xml')
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
-
-
-
 
 # ==== Admin Update Broadcaster ====
 
@@ -108,7 +114,7 @@ def handle_admin_connect():
 @socketio.on('find_stranger')
 def handle_find_stranger():
     if request.sid in rooms or request.sid in waiting_users:
-        return  # Prevent duplicate match attempts
+        return
 
     print(f"[+] {request.sid} is looking for a stranger...")
 
