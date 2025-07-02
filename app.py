@@ -11,18 +11,20 @@ load_dotenv()
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "supersecret")
 
-# Use Redis for scaling
-socketio = SocketIO(
-    app,
-    async_mode='eventlet',
-    message_queue=os.getenv("REDIS_URL", "redis://localhost:6379")
-)
+# Check if Redis URL is set, fallback if not
+redis_url = os.getenv("REDIS_URL") or None
 
-# ==== Admin Config ====
+# Setup SocketIO
+if redis_url:
+    socketio = SocketIO(app, async_mode='eventlet', message_queue=redis_url)
+else:
+    socketio = SocketIO(app, async_mode='eventlet')
+
+# ==== Configuration ====
 admin_username = os.getenv("ADMIN_USERNAME", "admin")
 admin_password_hash = generate_password_hash(os.getenv("ADMIN_PASSWORD", "admin123"))
 
-# ==== Global State ====
+# ==== In-memory state ====
 waiting_users = []
 rooms = {}
 connected_users = set()
@@ -71,7 +73,8 @@ def logout():
     session.pop('admin', None)
     return redirect('/admin')
 
-# ==== Emit to Admin ====
+# ==== Admin Update Broadcaster ====
+
 def emit_admin_update():
     socketio.emit('admin_update', {
         'users': list(connected_users),
@@ -83,8 +86,8 @@ def emit_admin_update():
 
 @socketio.on('connect')
 def handle_connect():
+    print(f"[+] User connected: {request.sid}")
     connected_users.add(request.sid)
-    print(f"[+] Connected: {request.sid}")
     emit_admin_update()
 
 @socketio.on('admin_connect')
@@ -94,18 +97,27 @@ def handle_admin_connect():
 @socketio.on('find_stranger')
 def handle_find_stranger():
     if request.sid in rooms or request.sid in waiting_users:
-        return
+        return  # Prevent duplicate match attempts
+
+    print(f"[+] {request.sid} is looking for a stranger...")
+
     if waiting_users:
         partner_sid = waiting_users.pop(0)
         room = f"room_{uuid4().hex}"
+
         join_room(room, sid=partner_sid)
         join_room(room, sid=request.sid)
+
         rooms[request.sid] = room
         rooms[partner_sid] = room
+
+        print(f"[✓] Matched {request.sid} with {partner_sid} in room {room}")
         emit('stranger_found', False, to=partner_sid)
         emit('stranger_found', True, to=request.sid)
     else:
         waiting_users.append(request.sid)
+        print(f"[-] No match found. {request.sid} added to waiting_users.")
+
     emit_admin_update()
 
 @socketio.on('offer')
@@ -135,18 +147,25 @@ def handle_chat_message(message):
 @socketio.on('disconnect')
 def handle_disconnect():
     sid = request.sid
+    print(f"[x] {sid} disconnected")
+
     connected_users.discard(sid)
+
     if sid in waiting_users:
         waiting_users.remove(sid)
+        print(f"[~] {sid} removed from waiting queue")
+
     room = rooms.pop(sid, None)
     if room:
         emit('stranger_disconnected', room=room, include_self=False)
         for other_sid in list(rooms):
-            if rooms[other_sid] == room:
+            if rooms.get(other_sid) == room:
                 rooms.pop(other_sid, None)
         leave_room(room)
+
     emit_admin_update()
 
 # ==== Run App ====
 if __name__ == '__main__':
-    socketio.run(app, debug=False, port=8007)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    socketio.run(app, debug=debug_mode, port=8007, host="0.0.0.0")
