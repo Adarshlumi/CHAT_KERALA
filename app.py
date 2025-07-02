@@ -76,6 +76,14 @@ def logout():
     session.pop('admin', None)
     return redirect('/admin')
 
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
+
+
+
+
 # ==== Admin Update Broadcaster ====
 
 def emit_admin_update():
