@@ -1,14 +1,23 @@
-from flask import Flask, render_template, send_from_directory, request, redirect, url_for, session
+from flask import Flask, render_template, send_from_directory, request, redirect, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.security import generate_password_hash, check_password_hash
+from uuid import uuid4
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = 'secret!'
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
 socketio = SocketIO(app)
+limiter = Limiter(app, key_func=get_remote_address)
 
 # ==== Configuration ====
-admin_username = 'adarsh@123'
-admin_password = 'ad#.85678'
+admin_username = os.getenv("ADMIN_USERNAME")
+admin_password_hash = generate_password_hash(os.getenv("ADMIN_PASSWORD"))
 
 # ==== State ====
 waiting_users = []
@@ -38,11 +47,12 @@ def favicon():
     return send_from_directory('static/icons', 'icon-192.png')
 
 @app.route('/admin', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # Prevent brute force
 def admin_login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        if username == admin_username and password == admin_password:
+        if username == admin_username and check_password_hash(admin_password_hash, password):
             session['admin'] = True
             return redirect('/dashboard')
         return render_template('admin.html', error="Invalid credentials")
@@ -82,10 +92,14 @@ def handle_admin_connect():
 
 @socketio.on('find_stranger')
 def handle_find_stranger():
+    if request.sid in rooms or request.sid in waiting_users:
+        return  # Prevent duplicate match attempts
+
     print(f"[+] {request.sid} is looking for a stranger...")
+
     if waiting_users:
         partner_sid = waiting_users.pop(0)
-        room = f"room_{partner_sid}_{request.sid}"
+        room = f"room_{uuid4().hex}"
 
         join_room(room, sid=partner_sid)
         join_room(room, sid=request.sid)
@@ -93,7 +107,7 @@ def handle_find_stranger():
         rooms[request.sid] = room
         rooms[partner_sid] = room
 
-        print(f"[\u2713] Matched {request.sid} with {partner_sid} in room {room}")
+        print(f"[✓] Matched {request.sid} with {partner_sid} in room {room}")
         emit('stranger_found', False, to=partner_sid)
         emit('stranger_found', True, to=request.sid)
     else:
@@ -147,15 +161,7 @@ def handle_disconnect():
 
     emit_admin_update()
 
-
-
-
-
-
-
-
-
-# === Run app ===
+# ==== Run App ====
 if __name__ == '__main__':
-    init_db()
-    socketio.run(app, debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    socketio.run(app, debug=debug_mode, port=8007)
