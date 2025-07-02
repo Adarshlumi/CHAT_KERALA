@@ -5,22 +5,22 @@ from uuid import uuid4
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load .env variables
 load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "supersecret")
 
-# Check if Redis URL is set, fallback if not
-redis_url = os.getenv("REDIS_URL") or None
+# Read optional Redis URL
+redis_url = os.getenv("REDIS_URL")
 
-# Setup SocketIO
+# Conditionally configure SocketIO with Redis
 if redis_url:
     socketio = SocketIO(app, async_mode='eventlet', message_queue=redis_url)
 else:
     socketio = SocketIO(app, async_mode='eventlet')
 
-# ==== Configuration ====
+# ==== Admin Config ====
 admin_username = os.getenv("ADMIN_USERNAME", "admin")
 admin_password_hash = generate_password_hash(os.getenv("ADMIN_PASSWORD", "admin123"))
 
@@ -40,7 +40,7 @@ def manifest():
     return send_from_directory('static', 'manifest.json')
 
 @app.route('/service-worker.js')
-def sw():
+def service_worker():
     return send_from_directory('static', 'service-worker.js')
 
 @app.route('/icons/<filename>')
@@ -63,7 +63,7 @@ def admin_login():
     return render_template('admin.html')
 
 @app.route('/dashboard')
-def admin_dashboard():
+def dashboard():
     if not session.get('admin'):
         return redirect('/admin')
     return render_template('dashboard.html', users=connected_users, rooms=rooms, waiting=waiting_users)
@@ -73,7 +73,7 @@ def logout():
     session.pop('admin', None)
     return redirect('/admin')
 
-# ==== Admin Update Broadcaster ====
+# ==== Socket.IO Events ====
 
 def emit_admin_update():
     socketio.emit('admin_update', {
@@ -82,11 +82,9 @@ def emit_admin_update():
         'rooms': rooms
     })
 
-# ==== Socket.IO Events ====
-
 @socketio.on('connect')
 def handle_connect():
-    print(f"[+] User connected: {request.sid}")
+    print(f"[+] Connected: {request.sid}")
     connected_users.add(request.sid)
     emit_admin_update()
 
@@ -97,27 +95,18 @@ def handle_admin_connect():
 @socketio.on('find_stranger')
 def handle_find_stranger():
     if request.sid in rooms or request.sid in waiting_users:
-        return  # Prevent duplicate match attempts
-
-    print(f"[+] {request.sid} is looking for a stranger...")
-
+        return
     if waiting_users:
         partner_sid = waiting_users.pop(0)
         room = f"room_{uuid4().hex}"
-
         join_room(room, sid=partner_sid)
         join_room(room, sid=request.sid)
-
         rooms[request.sid] = room
         rooms[partner_sid] = room
-
-        print(f"[✓] Matched {request.sid} with {partner_sid} in room {room}")
         emit('stranger_found', False, to=partner_sid)
         emit('stranger_found', True, to=request.sid)
     else:
         waiting_users.append(request.sid)
-        print(f"[-] No match found. {request.sid} added to waiting_users.")
-
     emit_admin_update()
 
 @socketio.on('offer')
@@ -147,14 +136,10 @@ def handle_chat_message(message):
 @socketio.on('disconnect')
 def handle_disconnect():
     sid = request.sid
-    print(f"[x] {sid} disconnected")
-
+    print(f"[x] Disconnected: {sid}")
     connected_users.discard(sid)
-
     if sid in waiting_users:
         waiting_users.remove(sid)
-        print(f"[~] {sid} removed from waiting queue")
-
     room = rooms.pop(sid, None)
     if room:
         emit('stranger_disconnected', room=room, include_self=False)
@@ -162,10 +147,10 @@ def handle_disconnect():
             if rooms.get(other_sid) == room:
                 rooms.pop(other_sid, None)
         leave_room(room)
-
     emit_admin_update()
 
 # ==== Run App ====
 if __name__ == '__main__':
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    socketio.run(app, debug=debug_mode, port=8007, host="0.0.0.0")
+    socketio.run(app, debug=debug_mode, port=8007, host='0.0.0.0')
+
