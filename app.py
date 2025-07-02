@@ -1,7 +1,5 @@
 from flask import Flask, render_template, send_from_directory, request, redirect, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from uuid import uuid4
 import os
@@ -13,7 +11,6 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
 socketio = SocketIO(app)
-limiter = Limiter(app, key_func=get_remote_address)
 
 # ==== Configuration ====
 admin_username = os.getenv("ADMIN_USERNAME")
@@ -47,7 +44,6 @@ def favicon():
     return send_from_directory('static/icons', 'icon-192.png')
 
 @app.route('/admin', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # Prevent brute force
 def admin_login():
     if request.method == 'POST':
         username = request.form['username']
