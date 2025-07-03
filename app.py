@@ -34,6 +34,19 @@ connected_users = set()
 
 # ==== Routes ====
 
+
+@app.route('/ashore')
+def ashore():
+    return render_template('ashore.html')
+
+
+
+
+
+
+
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
