@@ -35,6 +35,38 @@ connected_users = set()
 # ==== Routes ====
 
 
+# Store alarm status
+alarm_active = {'show': False, 'message': ''}
+
+@app.route('/trigger_alarm')
+def trigger_alarm():
+    if not session.get('admin'):
+        return redirect('/admin')
+    alarm_active['show'] = True
+    alarm_active['message'] = '🚨 Admin has triggered an alert!'
+    socketio.emit('show_alarm', {'message': alarm_active['message']})
+    return redirect('/dashboard')
+
+@app.route('/stop_alarm')
+def stop_alarm():
+    if not session.get('admin'):
+        return redirect('/admin')
+    alarm_active['show'] = False
+    alarm_active['message'] = ''
+    socketio.emit('hide_alarm')
+    return redirect('/dashboard')
+
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/ashore')
 def ashore():
     return render_template('ashore.html')
