@@ -2,11 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="description" content="MalluChat.online lets you instantly connect with strangers via video or text chat. 100% free, anonymous, and made for Malayalees. Start chatting now!">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
- <title>MalluChat – Talk to Strangers | Kerala’s Free Video Chat App</title>
-
-
+  <title>Stranger Video Chat</title>
 
   <!-- PWA Support -->
   <link rel="manifest" href="/manifest.json">
@@ -182,6 +179,15 @@
       updateStatus("Stranger disconnected", "text-red-400");
     });
 
+    // Redirect on admin alarm trigger
+    socket.on('show_alarm', () => {
+      window.location.href = '/ashore';
+    });
+
+    socket.on('hide_alarm', () => {
+      window.location.href = '/';
+    });
+
     // PWA service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
@@ -190,6 +196,5 @@
     }
   </script>
 
-  
 </body>
 </html>
