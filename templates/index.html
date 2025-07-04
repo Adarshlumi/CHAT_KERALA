@@ -12,14 +12,12 @@
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
     video {
       border-radius: 1rem;
       background-color: black;
     }
     #chatMessages {
-      max-height: 150px;
       overflow-y: auto;
     }
     #loader {
@@ -28,51 +26,65 @@
   </style>
 </head>
 
-<body class="bg-gradient-to-br from-black to-gray-900 text-white min-h-screen flex items-center justify-center px-4">
+<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white min-h-screen flex items-center justify-center px-4 py-8">
 
   <!-- Loader -->
   <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 hidden">
     <div class="w-12 h-12 border-4 border-green-500 border-dashed rounded-full animate-spin mb-4"></div>
-    <p class="text-lg">Finding a stranger...</p>
+    <p class="text-lg font-semibold">Finding a stranger...</p>
   </div>
 
   <!-- Main Container -->
-  <div class="w-full max-w-xl bg-white bg-opacity-5 p-6 rounded-2xl shadow-xl flex flex-col items-center">
-    <h1 class="text-3xl font-bold mb-3 text-center">🎥 Stranger Video <a href="/admin" class="underline text-green-400 hover:text-green-300">Call</a></h1>
-    <p id="statusBar" class="text-yellow-400 font-medium mb-4">🔄 Status: Waiting...</p>
+  <div class="w-full max-w-2xl px-4 sm:px-6 bg-white bg-opacity-10 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-md space-y-6">
+
+    <!-- Header -->
+    <div class="text-center space-y-2">
+      <h1 class="text-3xl md:text-5xl font-extrabold leading-tight">🎥 Stranger Video <a href="/admin" class="underline text-green-400 hover:text-green-300">Call</a></h1>
+      <p id="statusBar" class="text-yellow-400 font-medium text-sm sm:text-base">🔄 Status: Waiting...</p>
+    </div>
 
     <!-- Video Area -->
-    <div id="videos" class="flex flex-col gap-4 w-full">
-      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow"></video>
-      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow"></video>
+    <div id="videos" class="space-y-4">
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow-xl"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow-xl"></video>
     </div>
 
     <!-- Controls -->
-    <div class="flex gap-2 mt-4 flex-wrap justify-center">
-      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-xs sm:text-sm">🎤 Mute</button>
-      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-xs sm:text-sm">📷 Camera Off</button>
-      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-full text-xs sm:text-sm">🔴 Disconnect</button>
+    <div class="flex flex-wrap gap-2 justify-center">
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 px-5 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
     </div>
 
     <!-- Chat -->
-    <div class="w-full mt-6">
-      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-lg h-32 text-sm space-y-2 mb-2"></div>
+    <div class="space-y-2">
+      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-xl h-32 sm:h-40 md:h-48 text-sm space-y-2 overflow-y-auto"></div>
       <div class="flex gap-2">
-        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none text-sm" />
-        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-sm">Send</button>
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none text-sm text-white placeholder-gray-400" />
+        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-sm font-medium transition">Send</button>
       </div>
     </div>
 
     <!-- Gender Selection Buttons -->
-    <div class="flex gap-4 mt-6">
-      <button class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-sm font-semibold">👨 Male</button>
-      <button class="bg-pink-600 hover:bg-pink-500 px-6 py-2 rounded-full text-sm font-semibold">👩 Female</button>
+    <div class="flex justify-center gap-4">
+      <button id="maleBtn" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
+      <button id="femaleBtn" class="bg-pink-600 hover:bg-pink-500 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
+    </div>
+
+    <!-- QR Code Message -->
+    <div id="qrMessage" class="hidden text-center mt-4 text-sm text-pink-300 space-y-2">
+      <p>👩 Female option requires a one-time verification fee.<br>Please scan the QR code below to continue.</p>
+      <div class="mt-2">
+        <img src="/static/qr.png" alt="Payment QR" class="w-40 mx-auto rounded-lg border border-white shadow-lg" />
+      </div>
     </div>
 
     <!-- Connect Button -->
-    <button onclick="findStranger()" class="mt-6 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-base font-semibold shadow-lg">
-      🔄 Connect to Stranger
-    </button>
+    <div class="text-center">
+      <button onclick="findStranger()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-base font-semibold shadow-lg transition">
+        🔄 Connect to Stranger
+      </button>
+    </div>
   </div>
 
   <!-- Scripts -->
@@ -95,7 +107,7 @@
 
     function updateStatus(msg, color = "text-yellow-400") {
       statusBar.textContent = `🔄 Status: ${msg}`;
-      statusBar.className = `font-medium mb-4 ${color}`;
+      statusBar.className = `font-medium ${color}`;
     }
 
     async function getMedia() {
@@ -193,6 +205,14 @@
 
     socket.on('hide_alarm', () => {
       window.location.href = '/';
+    });
+
+    document.getElementById('femaleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.remove('hidden');
+    });
+
+    document.getElementById('maleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.add('hidden');
     });
 
     if ('serviceWorker' in navigator) {
