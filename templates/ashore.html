@@ -2,28 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>🚨 Emergency</title>
+  <title>⏳ Payment Required</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      background-color: #b91c1c;
-      color: white;
-      font-family: sans-serif;
+      margin: 0;
+      background-color: #5e89c5;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .container {
+      background-color: white;
+      color: #1a202c;
+      border-radius: 1rem;
+      padding: 2rem 1.5rem;
+      max-width: 400px;
+      width: 100%;
       text-align: center;
-      padding-top: 100px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
-    h1 {
-      font-size: 3rem;
+    .container .subtext {
+      font-size: 1.1rem;
+      color: #b91c1c;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
     }
-    p {
-      margin-top: 20px;
-      font-size: 1.5rem;
+    .qr img {
+      width: 100%;
+      max-width: 260px;
+      height: auto;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+    .footer {
+      font-size: 0.9rem;
+      color: #4a5568;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>🚨 Admin has triggered an emergency alert!</h1>
-  <p>Please wait here. You will be redirected when the admin stops the alert.</p>
+  <div class="container">
+    <p class="subtext">Pay ₹20 to continue using the service.</p>
+
+    <div class="qr">
+      <img src="/static/20.png" alt="Scan QR Code to Pay ₹20">
+    </div>
+
+    <div class="footer">Scan using Paytm, GPay or any UPI app</div>
+  </div>
 
   <script>
     const socket = io();
