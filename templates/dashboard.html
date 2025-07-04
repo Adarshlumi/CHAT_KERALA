@@ -2,19 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
- <title>MalluChat Admin Dashboard – Users, Rooms & Activity Monitor</title>
-<meta name="description" content="Real-time admin dashboard showing live connected users, waiting queue, and chat room activity on MalluChat. Built for performance and control.">
-
+  <title>MalluChat Admin Dashboard – Users, Rooms & Activity Monitor</title>
+  <meta name="description" content="Real-time admin dashboard showing live connected users, waiting queue, and chat room activity on MalluChat. Built for performance and control.">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-6">
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <h1 class="text-3xl font-bold mb-6 text-center">📊 Stranger Video Chat - Admin Dashboard</h1>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
       <div class="bg-gray-800 p-6 rounded-lg shadow">
         <h2 class="text-xl font-semibold">Connected Users</h2>
         <p id="connectedCount" class="text-4xl mt-2 font-bold text-green-400">0</p>
@@ -26,6 +25,10 @@
       <div class="bg-gray-800 p-6 rounded-lg shadow">
         <h2 class="text-xl font-semibold">Active Rooms</h2>
         <p id="roomCount" class="text-4xl mt-2 font-bold text-blue-400">0</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold">Daily Users</h2>
+        <p class="text-4xl mt-2 font-bold text-purple-400">{{ daily_users }}</p>
       </div>
     </div>
 
@@ -47,6 +50,12 @@
         </thead>
         <tbody id="userTableBody"></tbody>
       </table>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex justify-center gap-4 mt-10">
+      <a href="/trigger_alarm" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Trigger Alarm</a>
+      <a href="/stop_alarm" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Stop Alarm</a>
     </div>
   </div>
 
@@ -89,7 +98,7 @@
       const { users, waiting, rooms } = data;
       connectedEl.textContent = users.length;
       waitingEl.textContent = waiting.length;
-      roomEl.textContent = Object.keys(rooms).length / 2; // 2 users per room
+      roomEl.textContent = Object.keys(rooms).length / 2;
 
       const time = new Date().toLocaleTimeString();
       labels.push(time);
@@ -111,12 +120,5 @@
       });
     });
   </script>
-
-<a href="/trigger_alarm" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Trigger Alarm</a>
-<a href="/stop_alarm" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4">Stop Alarm</a>
-
-
-
-  
 </body>
 </html>
