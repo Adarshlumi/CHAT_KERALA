@@ -22,7 +22,7 @@ try:
     else:
         socketio = SocketIO(app, async_mode='eventlet')
 except ImportError:
-    print("\u26a0\ufe0f Redis not installed or unavailable. Running without message queue.")
+    print("⚠️ Redis not installed or unavailable. Running without message queue.")
     socketio = SocketIO(app, async_mode='eventlet')
 
 # ==== Configuration ====
@@ -37,25 +37,25 @@ connected_users = set()
 # ==== Database setup ====
 DATABASE = 'database.db'
 
-def log_user_login(user_id):
+def log_index_visit(ip):
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("""
-        CREATE TABLE IF NOT EXISTS user_logins (
+        CREATE TABLE IF NOT EXISTS index_visits (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ip TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    c.execute("INSERT INTO user_logins (user_id, login_time) VALUES (?, ?)", (user_id, datetime.now()))
+    c.execute("INSERT INTO index_visits (ip) VALUES (?)", (ip,))
     conn.commit()
     conn.close()
 
-def get_today_user_count():
+def get_today_index_visits():
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("""
-        SELECT COUNT(DISTINCT user_id) FROM user_logins WHERE DATE(login_time) = ?
+        SELECT COUNT(DISTINCT ip) FROM index_visits WHERE DATE(timestamp) = ?
     """, (date.today().isoformat(),))
     count = c.fetchone()[0]
     conn.close()
@@ -69,7 +69,7 @@ def trigger_alarm():
     if not session.get('admin'):
         return redirect('/admin')
     alarm_active['show'] = True
-    alarm_active['message'] = '\ud83d\udea8 Admin has triggered an alert!'
+    alarm_active['message'] = '🚨 Admin has triggered an alert!'
     socketio.emit('show_alarm', {'message': alarm_active['message']})
     return redirect('/dashboard')
 
@@ -88,6 +88,8 @@ def ashore():
 
 @app.route('/')
 def index():
+    ip = request.remote_addr
+    log_index_visit(ip)
     return render_template('index.html')
 
 @app.route('/manifest.json')
@@ -121,7 +123,7 @@ def admin_login():
 def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin')
-    daily_users = get_today_user_count()
+    daily_users = get_today_index_visits()
     return render_template('dashboard.html', users=connected_users, rooms=rooms, waiting=waiting_users, daily_users=daily_users)
 
 @app.route('/logout')
@@ -146,7 +148,6 @@ def emit_admin_update():
 def handle_connect():
     print(f"[+] User connected: {request.sid}")
     connected_users.add(request.sid)
-    log_user_login(request.sid)
     emit_admin_update()
 
 @socketio.on('admin_connect')
@@ -165,7 +166,7 @@ def handle_find_stranger():
         join_room(room, sid=request.sid)
         rooms[request.sid] = room
         rooms[partner_sid] = room
-        print(f"[\u2713] Matched {request.sid} with {partner_sid} in room {room}")
+        print(f"[✓] Matched {request.sid} with {partner_sid} in room {room}")
         emit('stranger_found', False, to=partner_sid)
         emit('stranger_found', True, to=request.sid)
     else:
