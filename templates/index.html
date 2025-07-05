@@ -25,6 +25,11 @@
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center justify-center px-4 py-8 transition-colors duration-300">
 
+  <!-- ✅ Online User Count -->
+  <div id="onlineCount" class="fixed top-4 right-4 bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-full shadow-lg z-50">
+    👥 Online: 0
+  </div>
+
   <!-- Loader -->
   <div id="loader" class="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-80 flex flex-col items-center justify-center z-50 hidden">
     <div class="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin mb-4"></div>
@@ -245,6 +250,7 @@
       window.location.href = '/';
     });
 
+    // 👩 QR Logic
     document.getElementById('femaleBtn').addEventListener('click', () => {
       document.getElementById('qrMessage').classList.remove('hidden');
     });
@@ -253,6 +259,15 @@
       document.getElementById('qrMessage').classList.add('hidden');
     });
 
+    // ✅ Online Count Listener
+    socket.on('online_count', (data) => {
+      const countDisplay = document.getElementById('onlineCount');
+      if (countDisplay) {
+        countDisplay.textContent = `👥 Online: ${data.count}`;
+      }
+    });
+
+    // Service Worker Registration
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(() => console.log('Service Worker Registered ✅'))
