@@ -89,6 +89,19 @@
   </div>
 
   <!-- Scripts -->
+
+<script>
+  const socket = io();
+
+  socket.on('online_count', data => {
+    const count = data.count;
+    // Update your DOM element with the count
+    document.getElementById("online-count").innerText = count;
+  });
+</script>
+
+
+  
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script>
     const socket = io();
