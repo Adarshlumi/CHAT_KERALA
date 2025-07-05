@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#1db954" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS for modern styling -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     video {
@@ -18,6 +18,7 @@
       background-color: black;
     }
     #chatMessages {
+      max-height: 150px;
       overflow-y: auto;
     }
     #loader {
@@ -25,83 +26,48 @@
     }
   </style>
 </head>
-
-<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white min-h-screen flex items-center justify-center px-4 py-8">
+<body class="bg-gradient-to-br from-black to-gray-900 text-white min-h-screen flex items-center justify-center px-4">
 
   <!-- Loader -->
   <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 hidden">
     <div class="w-12 h-12 border-4 border-green-500 border-dashed rounded-full animate-spin mb-4"></div>
-    <p class="text-lg font-semibold">Finding a stranger...</p>
+    <p class="text-lg">Finding a stranger...</p>
   </div>
 
   <!-- Main Container -->
-  <div class="w-full max-w-2xl px-4 sm:px-6 bg-white bg-opacity-10 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-md space-y-6">
+  <div class="w-full max-w-xl bg-white bg-opacity-5 p-6 rounded-2xl shadow-xl flex flex-col items-center">
+    <h1 class="text-3xl font-bold mb-3 text-center">🎥 Stranger Video <a href="/admin">Call</a></h1>
+    <p id="statusBar" class="text-yellow-400 font-medium mb-4">🔄 Status: Waiting...</p>
 
-    <!-- Header -->
-    <div class="text-center space-y-2">
-      <h1 class="text-3xl md:text-5xl font-extrabold leading-tight">🎥 Mallu Stranger Video Call</h1>
-      <p id="statusBar" class="text-yellow-400 font-medium text-sm sm:text-base">🔄 Status: Waiting...</p>
-      <p id="onlineCount" class="text-green-400 font-medium text-sm sm:text-base">🟢 Online: 0 users</p>
-    </div>
-
-    <!-- Video Area -->
-    <div id="videos" class="space-y-4">
-      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow-xl"></video>
-      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow-xl"></video>
+    <!-- Videos -->
+    <div id="videos" class="flex flex-col gap-4 w-full">
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow"></video>
     </div>
 
     <!-- Controls -->
-    <div class="flex flex-wrap gap-2 justify-center">
-      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
-      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
-      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 px-5 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
+    <div class="flex gap-2 mt-4 flex-wrap justify-center">
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 px-4 py-2 rounded-full">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 px-4 py-2 rounded-full">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 px-4 py-2 rounded-full">🔴 Disconnect</button>
     </div>
 
     <!-- Chat -->
-    <div class="space-y-2">
-      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-xl h-32 sm:h-40 md:h-48 text-sm space-y-2 overflow-y-auto"></div>
+    <div class="w-full mt-6">
+      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-lg h-32 text-sm space-y-2 mb-2"></div>
       <div class="flex gap-2">
-        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none text-sm text-white placeholder-gray-400" />
-        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-sm font-medium transition">Send</button>
-      </div>
-    </div>
-
-    <!-- Gender Selection Buttons -->
-    <div class="flex justify-center gap-4">
-      <button id="maleBtn" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
-      <button id="femaleBtn" class="bg-pink-600 hover:bg-pink-500 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
-    </div>
-
-    <!-- QR Code Message -->
-    <div id="qrMessage" class="hidden text-center mt-4 text-sm text-pink-300 space-y-2">
-      <p>👩 Female option requires a one-time verification fee.<br>Please scan the QR code below to continue.</p>
-      <div class="mt-2">
-        <img src="/static/60.png" alt="Payment QR" class="w-40 mx-auto rounded-lg border border-white shadow-lg" />
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none" />
+        <button onclick="sendMessage()" class="bg-green-600 px-4 py-2 rounded-full">Send</button>
       </div>
     </div>
 
     <!-- Connect Button -->
-    <div class="text-center">
-      <button onclick="findStranger()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-base font-semibold shadow-lg transition">
-        🔄 Connect to Stranger
-      </button>
-    </div>
+    <button onclick="findStranger()" class="mt-6 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-lg font-semibold shadow-lg">
+      🔄 Connect to Stranger
+    </button>
   </div>
 
   <!-- Scripts -->
-
-<script>
-  const socket = io();
-
-  socket.on('online_count', data => {
-    const count = data.count;
-    // Update your DOM element with the count
-    document.getElementById("online-count").innerText = count;
-  });
-</script>
-
-
-  
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script>
     const socket = io();
@@ -121,7 +87,7 @@
 
     function updateStatus(msg, color = "text-yellow-400") {
       statusBar.textContent = `🔄 Status: ${msg}`;
-      statusBar.className = `font-medium ${color}`;
+      statusBar.className = `font-medium mb-4 ${color}`;
     }
 
     async function getMedia() {
@@ -213,6 +179,7 @@
       updateStatus("Stranger disconnected", "text-red-400");
     });
 
+    // Redirect on admin alarm trigger
     socket.on('show_alarm', () => {
       window.location.href = '/ashore';
     });
@@ -221,26 +188,13 @@
       window.location.href = '/';
     });
 
-    // ✅ Gender-based QR logic
-    document.getElementById('femaleBtn').addEventListener('click', () => {
-      document.getElementById('qrMessage').classList.remove('hidden');
-    });
-
-    document.getElementById('maleBtn').addEventListener('click', () => {
-      document.getElementById('qrMessage').classList.add('hidden');
-    });
-
-    // ✅ Online user count
-    socket.on('online_users', (count) => {
-      document.getElementById('onlineCount').textContent = `🟢 Online: ${count} user${count !== 1 ? 's' : ''}`;
-    });
-
-    // ✅ PWA support
+    // PWA service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(() => console.log('Service Worker Registered ✅'))
         .catch(err => console.error('SW registration failed ❌', err));
     }
   </script>
+
 </body>
 </html>
