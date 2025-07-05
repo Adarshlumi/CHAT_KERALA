@@ -61,6 +61,17 @@ def get_today_index_visits():
     conn.close()
     return count
 
+# ==== Emit functions ====
+def emit_admin_update():
+    socketio.emit('admin_update', {
+        'users': list(connected_users),
+        'waiting': waiting_users,
+        'rooms': rooms
+    })
+
+def emit_online_count():
+    socketio.emit('online_count', {'count': len(connected_users)})
+
 # ==== Routes ====
 alarm_active = {'show': False, 'message': ''}
 
@@ -135,19 +146,12 @@ def logout():
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
 
-# ==== Admin Update Broadcaster ====
-def emit_admin_update():
-    socketio.emit('admin_update', {
-        'users': list(connected_users),
-        'waiting': waiting_users,
-        'rooms': rooms
-    })
-
 # ==== Socket.IO Events ====
 @socketio.on('connect')
 def handle_connect():
     print(f"[+] User connected: {request.sid}")
     connected_users.add(request.sid)
+    emit_online_count()
     emit_admin_update()
 
 @socketio.on('admin_connect')
@@ -213,6 +217,7 @@ def handle_disconnect():
             if rooms[other_sid] == room:
                 rooms.pop(other_sid, None)
         leave_room(room)
+    emit_online_count()
     emit_admin_update()
 
 # ==== Run App ====
