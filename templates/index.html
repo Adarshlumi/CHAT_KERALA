@@ -1,223 +1,252 @@
-from flask import Flask, render_template, send_from_directory, request, redirect, session
-from flask_socketio import SocketIO, emit, join_room, leave_room
-from werkzeug.security import generate_password_hash, check_password_hash
-from uuid import uuid4
-from datetime import datetime, date
-import os
-import sqlite3
-from dotenv import load_dotenv
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stranger Video Chat</title>
 
-# Load environment variables
-load_dotenv()
+  <!-- PWA Support -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1db954" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
-app.secret_key = os.getenv("FLASK_SECRET_KEY") or 'supersecret'
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    video {
+      border-radius: 1.5rem;
+      background-color: black;
+    }
+    #chatMessages {
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #4ade80 transparent;
+    }
+    #chatMessages::-webkit-scrollbar {
+      width: 6px;
+    }
+    #chatMessages::-webkit-scrollbar-thumb {
+      background-color: #4ade80;
+      border-radius: 4px;
+    }
+    #loader {
+      backdrop-filter: blur(6px);
+    }
+    #statusBar {
+      transition: all 0.3s ease-in-out;
+    }
+    #qrMessage img {
+      transition: transform 0.3s ease;
+    }
+    #qrMessage img:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
 
-# ==== Redis-safe SocketIO configuration ====
-redis_url = os.getenv("REDIS_URL")
-try:
-    if redis_url:
-        import redis
-        socketio = SocketIO(app, async_mode='eventlet', message_queue=redis_url)
-    else:
-        socketio = SocketIO(app, async_mode='eventlet')
-except ImportError:
-    print("⚠️ Redis not installed or unavailable. Running without message queue.")
-    socketio = SocketIO(app, async_mode='eventlet')
+<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white min-h-screen flex items-center justify-center px-4 py-8">
 
-# ==== Configuration ====
-admin_username = os.getenv("ADMIN_USERNAME")
-admin_password_hash = generate_password_hash(os.getenv("ADMIN_PASSWORD"))
+  <!-- Loader -->
+  <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-12 h-12 border-4 border-green-500 border-dashed rounded-full animate-spin mb-4"></div>
+    <p class="text-lg font-semibold">Finding a stranger...</p>
+  </div>
 
-# ==== In-memory state ====
-waiting_users = []
-rooms = {}
-connected_users = set()
+  <!-- Main Container -->
+  <div class="w-full max-w-2xl px-4 sm:px-6 bg-white bg-opacity-10 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-md space-y-6">
 
-# ==== Database setup ====
-DATABASE = 'database.db'
+    <!-- Header -->
+    <div class="text-center space-y-2">
+      <h1 class="text-3xl md:text-5xl font-extrabold leading-tight">🎥 Mallu Stranger Video Call</h1>
+      <p id="statusBar" class="text-yellow-400 font-medium text-sm sm:text-base">🔄 Status: Waiting...</p>
+      <p id="onlineCount" class="text-green-400 font-medium text-sm sm:text-base">🟢 Online: 0 users</p>
+    </div>
 
-def log_index_visit(ip):
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS index_visits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    c.execute("INSERT INTO index_visits (ip) VALUES (?)", (ip,))
-    conn.commit()
-    conn.close()
+    <!-- Video Area -->
+    <div id="videos" class="space-y-4">
+      <video id="localVideo" autoplay muted playsinline class="w-full max-h-[40vh] object-cover shadow-xl"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full max-h-[40vh] object-cover shadow-xl"></video>
+    </div>
 
-def get_today_index_visits():
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute("""
-        SELECT COUNT(DISTINCT ip) FROM index_visits WHERE DATE(timestamp) = ?
-    """, (date.today().isoformat(),))
-    count = c.fetchone()[0]
-    conn.close()
-    return count
+    <!-- Controls -->
+    <div class="flex flex-wrap gap-2 justify-center">
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 active:scale-95 px-5 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 active:scale-95 px-5 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 active:scale-95 px-5 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
+    </div>
 
-# ==== Routes ====
-alarm_active = {'show': False, 'message': ''}
+    <!-- Chat -->
+    <div class="space-y-2">
+      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-xl h-32 sm:h-40 md:h-48 max-h-[50vh] text-sm space-y-2 overflow-y-auto"></div>
+      <div class="flex gap-2">
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 text-sm text-white placeholder-gray-400 transition duration-200" />
+        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 active:scale-95 px-4 py-2 rounded-full text-sm font-medium transition">Send</button>
+      </div>
+    </div>
 
-@app.route('/trigger_alarm')
-def trigger_alarm():
-    if not session.get('admin'):
-        return redirect('/admin')
-    alarm_active['show'] = True
-    alarm_active['message'] = '🚨 Admin has triggered an alert!'
-    socketio.emit('show_alarm', {'message': alarm_active['message']})
-    return redirect('/dashboard')
+    <!-- Gender Selection Buttons -->
+    <div class="flex justify-center gap-4">
+      <button id="maleBtn" class="bg-blue-600 hover:bg-blue-500 active:scale-95 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
+      <button id="femaleBtn" class="bg-pink-600 hover:bg-pink-500 active:scale-95 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
+    </div>
 
-@app.route('/stop_alarm')
-def stop_alarm():
-    if not session.get('admin'):
-        return redirect('/admin')
-    alarm_active['show'] = False
-    alarm_active['message'] = ''
-    socketio.emit('hide_alarm')
-    return redirect('/dashboard')
+    <!-- QR Code Message -->
+    <div id="qrMessage" class="hidden text-center mt-4 text-sm text-pink-300 space-y-2">
+      <p>👩 Female option requires a one-time verification fee.<br>Please scan the QR code below to continue.</p>
+      <div class="mt-2">
+        <img src="/static/60.png" alt="Payment QR" class="w-40 mx-auto rounded-lg border border-white shadow-lg" />
+      </div>
+    </div>
 
-@app.route('/ashore')
-def ashore():
-    return render_template('ashore.html')
+    <!-- Connect Button -->
+    <div class="text-center">
+      <button onclick="findStranger()" class="bg-green-500 hover:bg-green-600 active:scale-95 px-6 py-3 rounded-full text-base font-semibold shadow-lg transition">
+        🔄 Connect to Stranger
+      </button>
+    </div>
+  </div>
 
-@app.route('/')
-def index():
-    ip = request.remote_addr
-    log_index_visit(ip)
-    return render_template('index.html')
+  <!-- Scripts -->
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    let localStream, peerConnection;
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('static', 'manifest.json')
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const loader = document.getElementById('loader');
+    const statusBar = document.getElementById('statusBar');
+    const micBtn = document.getElementById('micBtn');
+    const camBtn = document.getElementById('camBtn');
+    const onlineCount = document.getElementById('onlineCount');
 
-@app.route('/service-worker.js')
-def sw():
-    return send_from_directory('static', 'service-worker.js')
+    let isMicOn = true, isCamOn = true;
 
-@app.route('/icons/<filename>')
-def icons(filename):
-    return send_from_directory(os.path.join('static', 'icons'), filename)
+    function updateStatus(msg, color = "text-yellow-400") {
+      statusBar.textContent = `🔄 Status: ${msg}`;
+      statusBar.className = `font-medium ${color}`;
+    }
 
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory('static/icons', 'icon-192.png')
+    async function getMedia() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+    }
 
-@app.route('/admin', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if username == admin_username and check_password_hash(admin_password_hash, password):
-            session['admin'] = True
-            return redirect('/dashboard')
-        return render_template('admin.html', error="Invalid credentials")
-    return render_template('admin.html')
+    async function findStranger() {
+      chatMessages.innerHTML = '';
+      loader.classList.remove("hidden");
+      updateStatus("Searching...");
+      await getMedia();
+      socket.emit('find_stranger');
+    }
 
-@app.route('/dashboard')
-def admin_dashboard():
-    if not session.get('admin'):
-        return redirect('/admin')
-    daily_users = get_today_index_visits()
-    return render_template('dashboard.html', users=connected_users, rooms=rooms, waiting=waiting_users, daily_users=daily_users)
+    function sendMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      appendMessage("You", msg);
+      socket.emit('chat_message', msg);
+      chatInput.value = '';
+    }
 
-@app.route('/logout')
-def logout():
-    session.pop('admin', None)
-    return redirect('/admin')
+    function appendMessage(sender, text) {
+      const div = document.createElement("div");
+      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
-@app.route('/sitemap.xml')
-def sitemap():
-    return send_from_directory('static', 'sitemap.xml')
+    function toggleMic() {
+      isMicOn = !isMicOn;
+      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+      micBtn.textContent = isMicOn ? "🎤 Mute" : "🔇 Unmute";
+    }
 
-# ==== Admin Update Broadcaster ====
-def emit_admin_update():
-    socketio.emit('admin_update', {
-        'users': list(connected_users),
-        'waiting': waiting_users,
-        'rooms': rooms
-    })
+    function toggleCam() {
+      isCamOn = !isCamOn;
+      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
+      camBtn.textContent = isCamOn ? "📷 Camera Off" : "📵 Camera On";
+    }
 
-# ==== Socket.IO Events ====
-@socketio.on('connect')
-def handle_connect():
-    print(f"[+] User connected: {request.sid}")
-    connected_users.add(request.sid)
-    emit_admin_update()
-    socketio.emit('online_count', {'count': len(connected_users)})
+    function disconnectCall() {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+        remoteVideo.srcObject = null;
+        updateStatus("Disconnected.", "text-red-400");
+      }
+    }
 
-@socketio.on('admin_connect')
-def handle_admin_connect():
-    emit_admin_update()
+    socket.on('stranger_found', async (isCaller) => {
+      loader.classList.add("hidden");
+      updateStatus("Connected ✅", "text-green-400");
 
-@socketio.on('find_stranger')
-def handle_find_stranger():
-    if request.sid in rooms or request.sid in waiting_users:
-        return
-    print(f"[+] {request.sid} is looking for a stranger...")
-    if waiting_users:
-        partner_sid = waiting_users.pop(0)
-        room = f"room_{uuid4().hex}"
-        join_room(room, sid=partner_sid)
-        join_room(room, sid=request.sid)
-        rooms[request.sid] = room
-        rooms[partner_sid] = room
-        print(f"[✓] Matched {request.sid} with {partner_sid} in room {room}")
-        emit('stranger_found', False, to=partner_sid)
-        emit('stranger_found', True, to=request.sid)
-    else:
-        waiting_users.append(request.sid)
-        print(f"[-] No match found. {request.sid} added to waiting_users.")
-    emit_admin_update()
+      peerConnection = new RTCPeerConnection(config);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
+      peerConnection.onicecandidate = e => e.candidate && socket.emit('ice_candidate', e.candidate);
 
-@socketio.on('offer')
-def handle_offer(offer):
-    room = rooms.get(request.sid)
-    if room:
-        emit('offer', offer, room=room, include_self=False)
+      if (isCaller) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('offer', offer);
+      }
+    });
 
-@socketio.on('answer')
-def handle_answer(answer):
-    room = rooms.get(request.sid)
-    if room:
-        emit('answer', answer, room=room, include_self=False)
+    socket.on('offer', async (offer) => {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('answer', answer);
+    });
 
-@socketio.on('ice_candidate')
-def handle_ice(candidate):
-    room = rooms.get(request.sid)
-    if room:
-        emit('ice_candidate', candidate, room=room, include_self=False)
+    socket.on('answer', (answer) => {
+      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
 
-@socketio.on('chat_message')
-def handle_chat_message(message):
-    room = rooms.get(request.sid)
-    if room:
-        emit('chat_message', message, room=room, include_self=False)
+    socket.on('ice_candidate', (candidate) => {
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    });
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    sid = request.sid
-    print(f"[x] {sid} disconnected")
-    connected_users.discard(sid)
-    if sid in waiting_users:
-        waiting_users.remove(sid)
-        print(f"[~] {sid} removed from waiting queue")
-    room = rooms.pop(sid, None)
-    if room:
-        emit('stranger_disconnected', room=room, include_self=False)
-        for other_sid in list(rooms):
-            if rooms.get(other_sid) == room:
-                rooms.pop(other_sid, None)
-        leave_room(room)
-    emit_admin_update()
-    socketio.emit('online_count', {'count': len(connected_users)})
+    socket.on('chat_message', (msg) => {
+      appendMessage("Stranger", msg);
+    });
 
-# ==== Run App ====
-if __name__ == '__main__':
-    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    socketio.run(app, debug=debug_mode, port=8007)
+    socket.on('stranger_disconnected', () => {
+      remoteVideo.srcObject = null;
+      updateStatus("Stranger disconnected", "text-red-400");
+    });
+
+    socket.on('show_alarm', () => {
+      window.location.href = '/ashore';
+    });
+
+    socket.on('hide_alarm', () => {
+      window.location.href = '/';
+    });
+
+    socket.on('online_users', (count) => {
+      onlineCount.textContent = `🟢 Online: ${count} user${count !== 1 ? 's' : ''}`;
+    });
+
+    document.getElementById('femaleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.remove('hidden');
+    });
+
+    document.getElementById('maleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.add('hidden');
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('Service Worker Registered ✅'))
+        .catch(err => console.error('SW registration failed ❌', err));
+    }
+  </script>
+</body>
+</html>
