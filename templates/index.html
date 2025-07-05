@@ -1,111 +1,225 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth" id="htmlRoot">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mallu Video Chat</title>
+  <title>Stranger Video Chat</title>
 
-  <!-- PWA -->
+  <!-- PWA Support -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#1db954" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
   <!-- Tailwind CSS -->
-  <script>
-    tailwind.config = { darkMode: 'class' };
-  </script>
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
-    video { border-radius: 1rem; background: black; }
-    #chatMessages { overflow-y: auto; }
-    #loader { backdrop-filter: blur(4px); }
+    video {
+      border-radius: 1rem;
+      background-color: black;
+    }
+    #chatMessages {
+      overflow-y: auto;
+    }
+    #loader {
+      backdrop-filter: blur(4px);
+    }
   </style>
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center justify-start p-4 sm:p-6">
+<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white min-h-screen flex items-center justify-center px-4 py-8">
 
-  <!-- ✅ Online User Count -->
-  <div id="onlineCount" class="fixed top-4 right-4 bg-green-600 text-white text-xs sm:text-sm px-3 py-1.5 rounded-full shadow-lg z-50">
-    Online: 0
-  </div>
-
-  <!-- 🔄 Loader -->
-  <div id="loader" class="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-80 flex flex-col items-center justify-center z-50 hidden">
-    <div class="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin mb-4"></div>
+  <!-- Loader -->
+  <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-12 h-12 border-4 border-green-500 border-dashed rounded-full animate-spin mb-4"></div>
     <p class="text-lg font-semibold">Finding a stranger...</p>
   </div>
 
-  <!-- 🌐 Main Chat Box -->
-  <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-5 sm:p-8 space-y-6">
+  <!-- Main Container -->
+  <div class="w-full max-w-2xl px-4 sm:px-6 bg-white bg-opacity-10 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-md space-y-6">
 
-    <!-- 🔰 Header -->
-    <div class="text-center">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-600 dark:text-blue-400">Mallu Video Chat</h1>
-      <p id="statusBar" class="mt-1 text-sm text-gray-500 dark:text-gray-400">🔄 Status: Waiting...</p>
-      <button onclick="toggleDarkMode()" class="mt-2 text-sm text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-yellow-300 transition">
-        🌙 Toggle Dark Mode
-      </button>
+    <!-- Header -->
+    <div class="text-center space-y-2">
+      <h1 class="text-3xl md:text-5xl font-extrabold leading-tight">🎥Mallu Stranger Video Call</h1>
+      <p id="statusBar" class="text-yellow-400 font-medium text-sm sm:text-base">🔄 Status: Waiting...</p>
     </div>
 
-    <!-- 🎥 Video Streams with Watermark -->
-    <div id="videos" class="relative space-y-4">
-      <!-- 🔒 Watermark -->
-      <div class="absolute bottom-4 right-4 z-30 text-white text-lg sm:text-xl font-bold bg-black bg-opacity-40 px-4 py-2 rounded-xl pointer-events-none select-none shadow-md">
-        MalluChat.Online
-      </div>
-
-      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video bg-black rounded-xl shadow-md"></video>
-      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video bg-black rounded-xl shadow-md"></video>
+    <!-- Video Area -->
+    <div id="videos" class="space-y-4">
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow-xl"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow-xl"></video>
     </div>
 
-    <!-- 🎛️ Controls -->
-    <div class="flex flex-wrap justify-center gap-3">
-      <button onclick="toggleMic()" id="micBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
-      <button onclick="toggleCam()" id="camBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
-      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
+    <!-- Controls -->
+    <div class="flex flex-wrap gap-2 justify-center">
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 px-5 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
     </div>
 
-    <!-- 💬 Chat Area -->
+    <!-- Chat -->
     <div class="space-y-2">
-      <div id="chatMessages" class="bg-gray-200 dark:bg-gray-700 p-4 rounded-xl h-40 sm:h-48 text-sm overflow-y-auto space-y-2"></div>
+      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-xl h-32 sm:h-40 md:h-48 text-sm space-y-2 overflow-y-auto"></div>
       <div class="flex gap-2">
-        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-full focus:outline-none text-sm" />
-        <button onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm transition">Send</button>
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none text-sm text-white placeholder-gray-400" />
+        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-sm font-medium transition">Send</button>
       </div>
     </div>
 
-    <!-- 👥 Gender Selection -->
+    <!-- Gender Selection Buttons -->
     <div class="flex justify-center gap-4">
-      <button id="maleBtn" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
-      <button id="femaleBtn" class="bg-pink-100 hover:bg-pink-200 text-pink-700 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
+      <button id="maleBtn" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
+      <button id="femaleBtn" class="bg-pink-600 hover:bg-pink-500 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
     </div>
 
-    <!-- 💸 QR Message -->
-    <div id="qrMessage" class="hidden text-center mt-4 text-sm text-pink-600 dark:text-pink-400 space-y-2">
-      <p>👩 Female option requires a one-time verification fee.<br>Scan the QR below to continue:</p>
-      <img src="/static/60.png" alt="Payment QR" class="w-40 mx-auto rounded-lg border border-gray-300 dark:border-gray-600 shadow" />
+    <!-- QR Code Message -->
+    <div id="qrMessage" class="hidden text-center mt-4 text-sm text-pink-300 space-y-2">
+      <p>👩 Female option requires a one-time verification fee.<br>Please scan the QR code below to continue.</p>
+      <div class="mt-2">
+        <img src="/static/60.png" alt="Payment QR" class="w-40 mx-auto rounded-lg border border-white shadow-lg" />
+      </div>
     </div>
 
-    <!-- 🔁 Connect Button -->
-    <div class="text-center pt-2">
-      <button onclick="findStranger()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full text-base font-semibold shadow-md transition">
+    <!-- Connect Button -->
+    <div class="text-center">
+      <button onclick="findStranger()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-base font-semibold shadow-lg transition">
         🔄 Connect to Stranger
       </button>
     </div>
   </div>
 
-  <!-- 📄 Footer -->
-  <footer class="mt-10 text-center text-xs text-gray-400 dark:text-gray-500 pt-4 w-full max-w-2xl border-t border-gray-300 dark:border-gray-700">
-    <p class="mb-2">
-      By using this service, you agree to our
-      <a href="#" class="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">Terms</a> and
-      <a href="#" class="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">Privacy Policy</a>.
-    </p>
-    <p>&copy; 2025 Mallu Video Chat. All rights reserved.</p>
-  </footer>
-
   <!-- Scripts -->
-  <!-- (All your JS remains unchanged) -->
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    let localStream, peerConnection;
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const loader = document.getElementById('loader');
+    const statusBar = document.getElementById('statusBar');
+    const micBtn = document.getElementById('micBtn');
+    const camBtn = document.getElementById('camBtn');
+
+    let isMicOn = true, isCamOn = true;
+
+    function updateStatus(msg, color = "text-yellow-400") {
+      statusBar.textContent = `🔄 Status: ${msg}`;
+      statusBar.className = `font-medium ${color}`;
+    }
+
+    async function getMedia() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+    }
+
+    async function findStranger() {
+      chatMessages.innerHTML = '';
+      loader.classList.remove("hidden");
+      updateStatus("Searching...");
+      await getMedia();
+      socket.emit('find_stranger');
+    }
+
+    function sendMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      appendMessage("You", msg);
+      socket.emit('chat_message', msg);
+      chatInput.value = '';
+    }
+
+    function appendMessage(sender, text) {
+      const div = document.createElement("div");
+      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function toggleMic() {
+      isMicOn = !isMicOn;
+      localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
+      micBtn.textContent = isMicOn ? "🎤 Mute" : "🔇 Unmute";
+    }
+
+    function toggleCam() {
+      isCamOn = !isCamOn;
+      localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
+      camBtn.textContent = isCamOn ? "📷 Camera Off" : "📵 Camera On";
+    }
+
+    function disconnectCall() {
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+        remoteVideo.srcObject = null;
+        updateStatus("Disconnected.", "text-red-400");
+      }
+    }
+
+    socket.on('stranger_found', async (isCaller) => {
+      loader.classList.add("hidden");
+      updateStatus("Connected ✅", "text-green-400");
+
+      peerConnection = new RTCPeerConnection(config);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
+      peerConnection.onicecandidate = e => e.candidate && socket.emit('ice_candidate', e.candidate);
+
+      if (isCaller) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('offer', offer);
+      }
+    });
+
+    socket.on('offer', async (offer) => {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit('answer', answer);
+    });
+
+    socket.on('answer', (answer) => {
+      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    socket.on('ice_candidate', (candidate) => {
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    });
+
+    socket.on('chat_message', (msg) => {
+      appendMessage("Stranger", msg);
+    });
+
+    socket.on('stranger_disconnected', () => {
+      remoteVideo.srcObject = null;
+      updateStatus("Stranger disconnected", "text-red-400");
+    });
+
+    socket.on('show_alarm', () => {
+      window.location.href = '/ashore';
+    });
+
+    socket.on('hide_alarm', () => {
+      window.location.href = '/';
+    });
+
+    document.getElementById('femaleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.remove('hidden');
+    });
+
+    document.getElementById('maleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.add('hidden');
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(() => console.log('Service Worker Registered ✅'))
+        .catch(err => console.error('SW registration failed ❌', err));
+    }
+  </script>
 </body>
 </html>
