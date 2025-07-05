@@ -13,36 +13,15 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    html {
-      scroll-behavior: smooth;
-    }
     video {
-      border-radius: 1.5rem;
+      border-radius: 1rem;
       background-color: black;
     }
     #chatMessages {
       overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #4ade80 transparent;
-    }
-    #chatMessages::-webkit-scrollbar {
-      width: 6px;
-    }
-    #chatMessages::-webkit-scrollbar-thumb {
-      background-color: #4ade80;
-      border-radius: 4px;
     }
     #loader {
-      backdrop-filter: blur(6px);
-    }
-    #statusBar {
-      transition: all 0.3s ease-in-out;
-    }
-    #qrMessage img {
-      transition: transform 0.3s ease;
-    }
-    #qrMessage img:hover {
-      transform: scale(1.05);
+      backdrop-filter: blur(4px);
     }
   </style>
 </head>
@@ -67,30 +46,30 @@
 
     <!-- Video Area -->
     <div id="videos" class="space-y-4">
-      <video id="localVideo" autoplay muted playsinline class="w-full max-h-[40vh] object-cover shadow-xl"></video>
-      <video id="remoteVideo" autoplay playsinline class="w-full max-h-[40vh] object-cover shadow-xl"></video>
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow-xl"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow-xl"></video>
     </div>
 
     <!-- Controls -->
     <div class="flex flex-wrap gap-2 justify-center">
-      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 active:scale-95 px-5 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
-      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 active:scale-95 px-5 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
-      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 active:scale-95 px-5 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-500 px-5 py-2 rounded-full text-sm font-medium transition">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 px-5 py-2 rounded-full text-sm font-medium transition">🔴 Disconnect</button>
     </div>
 
     <!-- Chat -->
     <div class="space-y-2">
-      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-xl h-32 sm:h-40 md:h-48 max-h-[50vh] text-sm space-y-2 overflow-y-auto"></div>
+      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-xl h-32 sm:h-40 md:h-48 text-sm space-y-2 overflow-y-auto"></div>
       <div class="flex gap-2">
-        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 text-sm text-white placeholder-gray-400 transition duration-200" />
-        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 active:scale-95 px-4 py-2 rounded-full text-sm font-medium transition">Send</button>
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none text-sm text-white placeholder-gray-400" />
+        <button onclick="sendMessage()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-full text-sm font-medium transition">Send</button>
       </div>
     </div>
 
     <!-- Gender Selection Buttons -->
     <div class="flex justify-center gap-4">
-      <button id="maleBtn" class="bg-blue-600 hover:bg-blue-500 active:scale-95 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
-      <button id="femaleBtn" class="bg-pink-600 hover:bg-pink-500 active:scale-95 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
+      <button id="maleBtn" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-full text-sm font-semibold transition">👨 Male</button>
+      <button id="femaleBtn" class="bg-pink-600 hover:bg-pink-500 px-6 py-2 rounded-full text-sm font-semibold transition">👩 Female</button>
     </div>
 
     <!-- QR Code Message -->
@@ -103,7 +82,7 @@
 
     <!-- Connect Button -->
     <div class="text-center">
-      <button onclick="findStranger()" class="bg-green-500 hover:bg-green-600 active:scale-95 px-6 py-3 rounded-full text-base font-semibold shadow-lg transition">
+      <button onclick="findStranger()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-base font-semibold shadow-lg transition">
         🔄 Connect to Stranger
       </button>
     </div>
@@ -124,7 +103,6 @@
     const statusBar = document.getElementById('statusBar');
     const micBtn = document.getElementById('micBtn');
     const camBtn = document.getElementById('camBtn');
-    const onlineCount = document.getElementById('onlineCount');
 
     let isMicOn = true, isCamOn = true;
 
@@ -230,10 +208,7 @@
       window.location.href = '/';
     });
 
-    socket.on('online_users', (count) => {
-      onlineCount.textContent = `🟢 Online: ${count} user${count !== 1 ? 's' : ''}`;
-    });
-
+    // ✅ Gender-based QR logic
     document.getElementById('femaleBtn').addEventListener('click', () => {
       document.getElementById('qrMessage').classList.remove('hidden');
     });
@@ -242,6 +217,12 @@
       document.getElementById('qrMessage').classList.add('hidden');
     });
 
+    // ✅ Online user count
+    socket.on('online_users', (count) => {
+      document.getElementById('onlineCount').textContent = `🟢 Online: ${count} user${count !== 1 ? 's' : ''}`;
+    });
+
+    // ✅ PWA support
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(() => console.log('Service Worker Registered ✅'))
