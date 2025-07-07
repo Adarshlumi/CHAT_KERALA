@@ -1,81 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth" id="htmlRoot">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stranger Video Chat</title>
+  <title>Mallu Video Chat</title>
 
-  <!-- PWA Support -->
+  <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#1db954" />
+  <meta name="theme-color" content="#ffffff" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
   <!-- Tailwind CSS -->
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
-    video {
-      border-radius: 1rem;
-      background-color: black;
-    }
-    #chatMessages {
-      max-height: 150px;
-      overflow-y: auto;
-    }
-    #loader {
-      backdrop-filter: blur(4px);
-    }
+    video { border-radius: 1rem; background: black; }
+    #chatMessages { overflow-y: auto; }
+    #loader { backdrop-filter: blur(4px); }
   </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white min-h-screen flex items-center justify-center px-4 font-sans">
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col items-center justify-center px-4 py-8 transition-colors duration-300">
+
+  <!-- ✅ Online User Count -->
+  <div id="onlineCount" class="fixed top-4 right-4 bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-full shadow-lg z-50">
+    👥 Online: 0
+  </div>
 
   <!-- Loader -->
-  <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex flex-col items-center justify-center z-50 hidden">
-    <div class="w-12 h-12 border-4 border-green-400 border-dashed rounded-full animate-spin mb-4"></div>
-    <p class="text-lg font-medium text-white">Finding a stranger...</p>
+  <div id="loader" class="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-80 flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin mb-4"></div>
+    <p class="text-lg font-semibold">Finding a stranger...</p>
   </div>
 
   <!-- Main Container -->
-  <div class="w-full max-w-xl bg-white/5 backdrop-blur-xl p-6 rounded-3xl shadow-2xl flex flex-col items-center transition-all duration-300">
-    <h1 class="text-3xl font-bold text-white text-center mb-2">🎥 <span class="text-green-400">Stranger Video Call</span></h1>
-    
+  <div class="w-full max-w-2xl px-4 sm:px-6 bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
 
-    <!-- ✅ Online Users Count -->
-    <p id="onlineCount" class="text-sm font-medium text-green-400 mb-2">🟢 Online Users: 0</p>
+    <!-- Header -->
+    <div class="text-center space-y-1">
+      <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400">Mallu Video Chat</h1>
+      <p id="statusBar" class="text-sm text-gray-500 dark:text-gray-400">🔄 Status: Waiting...</p>
 
-    <!-- Connection Status -->
-    <p id="statusBar" class="text-yellow-400 font-semibold mb-4">🔄 Status: Waiting...</p>
-
-    <!-- Videos -->
-    <div id="videos" class="flex flex-col gap-4 w-full transition-all duration-300">
-      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video bg-black rounded-xl shadow-lg"></video>
-      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video bg-black rounded-xl shadow-lg"></video>
-    </div>
-
-    <!-- Controls -->
-    <div class="flex gap-2 mt-4 flex-wrap justify-center">
-      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-700 active:scale-95 transition px-4 py-2 rounded-full shadow">🎤 Mute</button>
-      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-700 active:scale-95 transition px-4 py-2 rounded-full shadow">📷 Camera Off</button>
-      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-700 active:scale-95 transition px-4 py-2 rounded-full shadow">🔴 Disconnect</button>
-    </div>
-
-    <!-- Chat Section -->
-    <div class="w-full mt-6">
-      <div id="chatMessages" class="bg-white/10 p-3 rounded-xl h-36 text-sm overflow-y-auto space-y-1 font-light shadow-inner"></div>
-      <div class="flex gap-2 mt-2">
-        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 text-white px-4 py-2 rounded-full focus:outline-none placeholder-gray-400" />
-        <button onclick="sendMessage()" class="bg-green-500 hover:bg-green-600 active:scale-95 px-4 py-2 rounded-full shadow">Send</button>
+      <!-- Dark Mode Toggle Button -->
+      <div class="flex justify-center mt-2">
+        <button onclick="toggleDarkMode()" class="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-yellow-300 transition">
+          🌙 Toggle Dark Mode
+        </button>
       </div>
     </div>
 
+    <!-- Videos -->
+    <div id="videos" class="space-y-4">
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video bg-black shadow rounded-xl"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video bg-black shadow rounded-xl"></video>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap gap-2 justify-center">
+      <button onclick="toggleMic()" id="micBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full text-sm font-medium">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full text-sm font-medium">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-500 text-white px-5 py-2 rounded-full text-sm font-medium">🔴 Disconnect</button>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="space-y-2">
+      <div id="chatMessages" class="bg-gray-200 dark:bg-gray-700 p-4 rounded-xl h-40 text-sm space-y-2 overflow-y-auto"></div>
+      <div class="flex gap-2">
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-full focus:outline-none text-sm text-gray-900 dark:text-white" />
+        <button onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">Send</button>
+      </div>
+    </div>
+
+    <!-- Gender Selection -->
+    <div class="flex justify-center gap-4">
+      <button id="maleBtn" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-6 py-2 rounded-full text-sm font-semibold">👨 Male</button>
+      <button id="femaleBtn" class="bg-pink-100 hover:bg-pink-200 text-pink-700 px-6 py-2 rounded-full text-sm font-semibold">👩 Female</button>
+    </div>
+
+    <!-- QR Code Message -->
+    <div id="qrMessage" class="hidden text-center mt-4 text-sm text-pink-600 dark:text-pink-400 space-y-2">
+      <p>👩 Female option requires a one-time verification fee.<br>Please scan the QR code below to continue.</p>
+      <img src="/static/60.png" alt="Payment QR" class="w-40 mx-auto rounded-lg border border-gray-300 dark:border-gray-600 shadow" />
+    </div>
+
     <!-- Connect Button -->
-    <button onclick="findStranger()" class="mt-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 px-6 py-3 rounded-full text-lg font-semibold shadow-lg transition-all duration-200 active:scale-95">
-      🔄 Connect to Stranger
-    </button>
+    <div class="text-center">
+      <button onclick="findStranger()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full text-base font-semibold shadow-md">
+        🔄 Connect to Stranger
+      </button>
+    </div>
   </div>
+
+  <!-- Footer -->
+  <footer class="mt-10 text-center text-xs text-gray-400 dark:text-gray-500 border-t border-gray-300 dark:border-gray-700 pt-4 w-full max-w-2xl">
+    <p class="mb-2">
+      By using this service, you agree to our
+      <a href="#" class="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">Terms & Conditions</a> and
+      <a href="#" class="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300">Privacy Policy</a>.
+    </p>
+    <p>&copy; 2025 Mallu Video Chat. All rights reserved.</p>
+  </footer>
 
   <!-- Scripts -->
   <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
   <script>
+    // Dark Mode Logic
+    function toggleDarkMode() {
+      const html = document.getElementById('htmlRoot');
+      const isDark = html.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const html = document.getElementById('htmlRoot');
+      const theme = localStorage.getItem('theme');
+      if (theme === 'dark') {
+        html.classList.add('dark');
+      } else {
+        html.classList.remove('dark');
+      }
+    });
+
+    // Video Chat Logic
     const socket = io();
     let localStream, peerConnection;
     const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
@@ -91,9 +140,9 @@
 
     let isMicOn = true, isCamOn = true;
 
-    function updateStatus(msg, color = "text-yellow-400") {
+    function updateStatus(msg, color = "text-gray-500") {
       statusBar.textContent = `🔄 Status: ${msg}`;
-      statusBar.className = `font-medium mb-4 ${color}`;
+      statusBar.className = `text-sm ${color}`;
     }
 
     async function getMedia() {
@@ -112,15 +161,23 @@
     function sendMessage() {
       const msg = chatInput.value.trim();
       if (!msg) return;
-      appendMessage("You", msg);
+      appendMessage("You", msg, true);
       socket.emit('chat_message', msg);
       chatInput.value = '';
     }
 
-    function appendMessage(sender, text) {
-      const div = document.createElement("div");
-      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
-      chatMessages.appendChild(div);
+    function appendMessage(sender, text, isUser = false) {
+      const bubble = document.createElement("div");
+      bubble.className = `max-w-[75%] px-4 py-2 rounded-2xl text-sm ${
+        isUser
+          ? "bg-blue-500 text-white self-end ml-auto"
+          : "bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 self-start mr-auto"
+      }`;
+      bubble.innerHTML = `<strong class="text-xs block">${sender}</strong>${text}`;
+      const wrapper = document.createElement("div");
+      wrapper.className = "flex flex-col";
+      wrapper.appendChild(bubble);
+      chatMessages.appendChild(wrapper);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
@@ -141,13 +198,13 @@
         peerConnection.close();
         peerConnection = null;
         remoteVideo.srcObject = null;
-        updateStatus("Disconnected.", "text-red-400");
+        updateStatus("Disconnected.", "text-red-500");
       }
     }
 
     socket.on('stranger_found', async (isCaller) => {
       loader.classList.add("hidden");
-      updateStatus("Connected ✅", "text-green-400");
+      updateStatus("Connected ✅", "text-green-600");
 
       peerConnection = new RTCPeerConnection(config);
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -182,33 +239,40 @@
 
     socket.on('stranger_disconnected', () => {
       remoteVideo.srcObject = null;
-      updateStatus("Stranger disconnected", "text-red-400");
+      updateStatus("Stranger disconnected", "text-red-500");
     });
 
-    // ✅ Handle Online Users Count
-    socket.on('user_count', (count) => {
-      document.getElementById('onlineCount').textContent = `🟢 Online Users: ${count}`;
+    socket.on('show_alarm', () => {
+      window.location.href = '/ashore';
     });
 
-    // Optional admin redirection
-    socket.on('show_alarm', () => window.location.href = '/ashore');
-    socket.on('hide_alarm', () => window.location.href = '/');
+    socket.on('hide_alarm', () => {
+      window.location.href = '/';
+    });
 
+    // 👩 QR Logic
+    document.getElementById('femaleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.remove('hidden');
+    });
 
-socket.on('online_count', ({ count }) => {
-  document.getElementById('onlineCount').textContent = `🟢 Online Users: ${count}`;
-});
+    document.getElementById('maleBtn').addEventListener('click', () => {
+      document.getElementById('qrMessage').classList.add('hidden');
+    });
 
+    // ✅ Online Count Listener
+    socket.on('online_count', (data) => {
+      const countDisplay = document.getElementById('onlineCount');
+      if (countDisplay) {
+        countDisplay.textContent = `👥 Online: ${data.count}`;
+      }
+    });
 
-    
-
-    // PWA service worker
+    // Service Worker Registration
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(() => console.log('Service Worker Registered ✅'))
         .catch(err => console.error('SW registration failed ❌', err));
     }
   </script>
-
 </body>
 </html>
