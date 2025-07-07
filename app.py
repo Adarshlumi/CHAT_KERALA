@@ -135,6 +135,38 @@ def logout():
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
 
+
+
+online_users = set()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@socketio.on('connect')
+def handle_connect():
+    user_id = str(uuid4())
+    online_users.add(user_id)
+    emit('user_count', len(online_users), broadcast=True)
+    # Store user_id in session if needed
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    # You could store user_id in a client-side cookie/session to identify
+    # For simplicity, assume we don't identify — we just subtract 1
+    if len(online_users) > 0:
+        online_users.pop()
+    emit('user_count', len(online_users), broadcast=True)
+
+
+
+
+
+
+
+
+
+
 # ==== Admin Update Broadcaster ====
 def emit_admin_update():
     socketio.emit('admin_update', {
