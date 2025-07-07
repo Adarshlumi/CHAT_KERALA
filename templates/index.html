@@ -194,6 +194,14 @@
     socket.on('show_alarm', () => window.location.href = '/ashore');
     socket.on('hide_alarm', () => window.location.href = '/');
 
+
+socket.on('online_count', ({ count }) => {
+  document.getElementById('onlineCount').textContent = `🟢 Online Users: ${count}`;
+});
+
+
+    
+
     // PWA service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js')
