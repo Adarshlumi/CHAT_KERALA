@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#1db954" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
-  <!-- Tailwind CSS for modern styling -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     video {
@@ -26,43 +26,49 @@
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-black to-gray-900 text-white min-h-screen flex items-center justify-center px-4">
+<body class="bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white min-h-screen flex items-center justify-center px-4 font-sans">
 
   <!-- Loader -->
-  <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 hidden">
-    <div class="w-12 h-12 border-4 border-green-500 border-dashed rounded-full animate-spin mb-4"></div>
-    <p class="text-lg">Finding a stranger...</p>
+  <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-12 h-12 border-4 border-green-400 border-dashed rounded-full animate-spin mb-4"></div>
+    <p class="text-lg font-medium text-white">Finding a stranger...</p>
   </div>
 
   <!-- Main Container -->
-  <div class="w-full max-w-xl bg-white bg-opacity-5 p-6 rounded-2xl shadow-xl flex flex-col items-center">
-    <h1 class="text-3xl font-bold mb-3 text-center">🎥 Stranger Video <a href="/admin">Call</a></h1>
-    <p id="statusBar" class="text-yellow-400 font-medium mb-4">🔄 Status: Waiting...</p>
+  <div class="w-full max-w-xl bg-white/5 backdrop-blur-xl p-6 rounded-3xl shadow-2xl flex flex-col items-center transition-all duration-300">
+    <h1 class="text-3xl font-bold text-white text-center mb-2">🎥 <span class="text-green-400">Stranger Video Call</span></h1>
+    <a href="/admin" class="text-sm text-gray-400 hover:text-white mb-2">Admin Panel</a>
+
+    <!-- ✅ Online Users Count -->
+    <p id="onlineCount" class="text-sm font-medium text-green-400 mb-2">🟢 Online Users: 0</p>
+
+    <!-- Connection Status -->
+    <p id="statusBar" class="text-yellow-400 font-semibold mb-4">🔄 Status: Waiting...</p>
 
     <!-- Videos -->
-    <div id="videos" class="flex flex-col gap-4 w-full">
-      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video shadow"></video>
-      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video shadow"></video>
+    <div id="videos" class="flex flex-col gap-4 w-full transition-all duration-300">
+      <video id="localVideo" autoplay muted playsinline class="w-full aspect-video bg-black rounded-xl shadow-lg"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full aspect-video bg-black rounded-xl shadow-lg"></video>
     </div>
 
     <!-- Controls -->
     <div class="flex gap-2 mt-4 flex-wrap justify-center">
-      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 px-4 py-2 rounded-full">🎤 Mute</button>
-      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 px-4 py-2 rounded-full">📷 Camera Off</button>
-      <button onclick="disconnectCall()" class="bg-red-600 px-4 py-2 rounded-full">🔴 Disconnect</button>
+      <button onclick="toggleMic()" id="micBtn" class="bg-green-600 hover:bg-green-700 active:scale-95 transition px-4 py-2 rounded-full shadow">🎤 Mute</button>
+      <button onclick="toggleCam()" id="camBtn" class="bg-green-600 hover:bg-green-700 active:scale-95 transition px-4 py-2 rounded-full shadow">📷 Camera Off</button>
+      <button onclick="disconnectCall()" class="bg-red-600 hover:bg-red-700 active:scale-95 transition px-4 py-2 rounded-full shadow">🔴 Disconnect</button>
     </div>
 
-    <!-- Chat -->
+    <!-- Chat Section -->
     <div class="w-full mt-6">
-      <div id="chatMessages" class="bg-black bg-opacity-30 p-3 rounded-lg h-32 text-sm space-y-2 mb-2"></div>
-      <div class="flex gap-2">
-        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 px-4 py-2 rounded-full focus:outline-none" />
-        <button onclick="sendMessage()" class="bg-green-600 px-4 py-2 rounded-full">Send</button>
+      <div id="chatMessages" class="bg-white/10 p-3 rounded-xl h-36 text-sm overflow-y-auto space-y-1 font-light shadow-inner"></div>
+      <div class="flex gap-2 mt-2">
+        <input type="text" id="chatInput" placeholder="Type a message..." class="flex-1 bg-gray-800 text-white px-4 py-2 rounded-full focus:outline-none placeholder-gray-400" />
+        <button onclick="sendMessage()" class="bg-green-500 hover:bg-green-600 active:scale-95 px-4 py-2 rounded-full shadow">Send</button>
       </div>
     </div>
 
     <!-- Connect Button -->
-    <button onclick="findStranger()" class="mt-6 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-full text-lg font-semibold shadow-lg">
+    <button onclick="findStranger()" class="mt-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 px-6 py-3 rounded-full text-lg font-semibold shadow-lg transition-all duration-200 active:scale-95">
       🔄 Connect to Stranger
     </button>
   </div>
@@ -179,14 +185,14 @@
       updateStatus("Stranger disconnected", "text-red-400");
     });
 
-    // Redirect on admin alarm trigger
-    socket.on('show_alarm', () => {
-      window.location.href = '/ashore';
+    // ✅ Handle Online Users Count
+    socket.on('user_count', (count) => {
+      document.getElementById('onlineCount').textContent = `🟢 Online Users: ${count}`;
     });
 
-    socket.on('hide_alarm', () => {
-      window.location.href = '/';
-    });
+    // Optional admin redirection
+    socket.on('show_alarm', () => window.location.href = '/ashore');
+    socket.on('hide_alarm', () => window.location.href = '/');
 
     // PWA service worker
     if ('serviceWorker' in navigator) {
