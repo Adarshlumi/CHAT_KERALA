@@ -63,6 +63,22 @@ def get_today_index_visits():
     return count
 
 # Routes
+
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+
+
+
+
+
 @app.route('/')
 def index():
     ip = request.remote_addr
