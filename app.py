@@ -64,6 +64,61 @@ def get_today_index_visits():
 
 # Routes
 
+@app.route("/")
+def index():
+    ip = request.remote_addr
+    log_index_visit(ip)
+    return render_template("index.html")
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        if username == admin_username and check_password_hash(admin_password_hash, password):
+            session["admin"] = True
+            return redirect("/dashboard")
+        return render_template("admin.html", error="Invalid credentials")
+    return render_template("admin.html")
+
+@app.route("/dashboard")
+def admin_dashboard():
+    if not session.get("admin"):
+        return redirect("/admin")
+    daily_users = get_today_index_visits()
+    return render_template("dashboard.html",
+        users=list(connected_users),
+        rooms=rooms,
+        waiting=waiting_users,
+        daily_users=daily_users
+    )
+
+@app.route("/logout")
+def logout():
+    session.pop("admin", None)
+    return redirect("/admin")
+
+@app.route("/trigger_alarm")
+def trigger_alarm():
+    if not session.get("admin"):
+        return redirect("/admin")
+    alarm_active["show"] = True
+    alarm_active["message"] = "🚨 Admin has triggered an alert!"
+    socketio.emit("show_alarm", {"message": alarm_active["message"]})
+    return redirect("/dashboard")
+
+@app.route("/stop_alarm")
+def stop_alarm():
+    if not session.get("admin"):
+        return redirect("/admin")
+    alarm_active["show"] = False
+    alarm_active["message"] = ""
+    socketio.emit("hide_alarm")
+    return redirect("/dashboard")
+
+@app.route("/ashore")
+def ashore():
+    return render_template("ashore.html")
 
 @app.route("/terms")
 def terms():
@@ -73,125 +128,55 @@ def terms():
 def privacy():
     return render_template("privacy.html")
 
+@app.route("/manifest.json")
+def manifest():
+    return send_from_directory("static", "manifest.json")
 
+@app.route("/service-worker.js")
+def sw():
+    return send_from_directory("static", "service-worker.js")
 
+@app.route("/icons/<filename>")
+def icons(filename):
+    return send_from_directory(os.path.join("static", "icons"), filename)
 
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory("static/icons", "icon-192.png")
 
+@app.route("/sitemap.xml")
+def sitemap():
+    return send_from_directory("static", "sitemap.xml")
 
+@app.route("/robots.txt")
+def robots():
+    return send_from_directory("static", "robots.txt")
 
-@app.route('/')
-def index():
-    ip = request.remote_addr
-    log_index_visit(ip)
-    return render_template('index.html')
-
-@app.route('/admin', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if username == admin_username and check_password_hash(admin_password_hash, password):
-            session['admin'] = True
-            return redirect('/dashboard')
-        return render_template('admin.html', error="Invalid credentials")
-    return render_template('admin.html')
-
-@app.route('/dashboard')
-def admin_dashboard():
-    if not session.get('admin'):
-        return redirect('/admin')
-    daily_users = get_today_index_visits()
-    return render_template('dashboard.html',
-        users=list(connected_users),  # 🔥 This is critical
-        rooms=rooms,
-        waiting=waiting_users,
-        daily_users=daily_users
-    )
-
-
+# Error handler
 @app.errorhandler(500)
 def internal_error(error):
     import traceback
+    print("🚨 500 ERROR:")
     traceback.print_exc()
     return "500 Internal Server Error", 500
 
-
-
-@app.route('/logout')
-def logout():
-    session.pop('admin', None)
-    return redirect('/admin')
-
-@app.route('/trigger_alarm')
-def trigger_alarm():
-    if not session.get('admin'):
-        return redirect('/admin')
-    alarm_active['show'] = True
-    alarm_active['message'] = '🚨 Admin has triggered an alert!'
-    socketio.emit('show_alarm', {'message': alarm_active['message']})
-    return redirect('/dashboard')
-
-@app.route('/stop_alarm')
-def stop_alarm():
-    if not session.get('admin'):
-        return redirect('/admin')
-    alarm_active['show'] = False
-    alarm_active['message'] = ''
-    socketio.emit('hide_alarm')
-    return redirect('/dashboard')
-
-@app.route('/ashore')
-def ashore():
-    return render_template('ashore.html')
-
-@app.route('/manifest.json')
-def manifest():
-    return send_from_directory('static', 'manifest.json')
-
-@app.route('/service-worker.js')
-def sw():
-    return send_from_directory('static', 'service-worker.js')
-
-@app.route('/icons/<filename>')
-def icons(filename):
-    return send_from_directory(os.path.join('static', 'icons'), filename)
-
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory('static/icons', 'icon-192.png')
-
-@app.route('/sitemap.xml')
-def sitemap():
-    return send_from_directory('static', 'sitemap.xml')
-
 # SocketIO Events
 
-
 def emit_admin_update():
-    socketio.emit('admin_update', {
-        'users': list(connected_users),  # ✅ List!
-        'waiting': waiting_users,
-        'rooms': rooms
+    socketio.emit("admin_update", {
+        "users": list(connected_users),
+        "waiting": waiting_users,
+        "rooms": rooms
     })
 
-
-
-
-def emit_admin_update():
-    socketio.emit('admin_update', {
-        'users': list(connected_users),
-        'waiting': waiting_users,
-        'rooms': rooms
-    })
-
-@socketio.on('connect')
+@socketio.on("connect")
 def handle_connect():
     print(f"[+] User connected: {request.sid}")
     connected_users.add(request.sid)
     emit_admin_update()
-    socketio.emit('online_count', {'count': len(connected_users)})
+    socketio.emit("online_count", {"count": len(connected_users)})
 
-@socketio.on('disconnect')
+@socketio.on("disconnect")
 def handle_disconnect():
     sid = request.sid
     print(f"[x] {sid} disconnected")
@@ -200,19 +185,19 @@ def handle_disconnect():
         waiting_users.remove(sid)
     room = rooms.pop(sid, None)
     if room:
-        emit('stranger_disconnected', room=room, include_self=False)
+        emit("stranger_disconnected", room=room, include_self=False)
         for other_sid in list(rooms):
             if rooms.get(other_sid) == room:
                 rooms.pop(other_sid, None)
         leave_room(room)
     emit_admin_update()
-    socketio.emit('online_count', {'count': len(connected_users)})
+    socketio.emit("online_count", {"count": len(connected_users)})
 
-@socketio.on('admin_connect')
+@socketio.on("admin_connect")
 def handle_admin_connect():
     emit_admin_update()
 
-@socketio.on('find_stranger')
+@socketio.on("find_stranger")
 def handle_find_stranger():
     if request.sid in rooms or request.sid in waiting_users:
         return
@@ -223,37 +208,37 @@ def handle_find_stranger():
         join_room(room, sid=request.sid)
         rooms[request.sid] = room
         rooms[partner_sid] = room
-        emit('stranger_found', False, to=partner_sid)
-        emit('stranger_found', True, to=request.sid)
+        emit("stranger_found", False, to=partner_sid)
+        emit("stranger_found", True, to=request.sid)
     else:
         waiting_users.append(request.sid)
     emit_admin_update()
 
-@socketio.on('offer')
+@socketio.on("offer")
 def handle_offer(offer):
     room = rooms.get(request.sid)
     if room:
-        emit('offer', offer, room=room, include_self=False)
+        emit("offer", offer, room=room, include_self=False)
 
-@socketio.on('answer')
+@socketio.on("answer")
 def handle_answer(answer):
     room = rooms.get(request.sid)
     if room:
-        emit('answer', answer, room=room, include_self=False)
+        emit("answer", answer, room=room, include_self=False)
 
-@socketio.on('ice_candidate')
+@socketio.on("ice_candidate")
 def handle_ice(candidate):
     room = rooms.get(request.sid)
     if room:
-        emit('ice_candidate', candidate, room=room, include_self=False)
+        emit("ice_candidate", candidate, room=room, include_self=False)
 
-@socketio.on('chat_message')
+@socketio.on("chat_message")
 def handle_chat_message(message):
     room = rooms.get(request.sid)
     if room:
-        emit('chat_message', message, room=room, include_self=False)
+        emit("chat_message", message, room=room, include_self=False)
 
 # Run the App
-if __name__ == '__main__':
+if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     socketio.run(app, debug=debug_mode, port=8007)
