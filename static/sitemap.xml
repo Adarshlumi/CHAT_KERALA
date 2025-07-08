@@ -1,15 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Homepage -->
   <url>
     <loc>https://malluchat.online/</loc>
     <priority>1.00</priority>
   </url>
+
+  <!-- Admin Panel -->
   <url>
     <loc>https://malluchat.online/admin</loc>
     <priority>0.80</priority>
   </url>
+
+  <!-- Dashboard -->
   <url>
     <loc>https://malluchat.online/dashboard</loc>
     <priority>0.80</priority>
   </url>
+
+  <!-- Terms & Conditions -->
+  <url>
+    <loc>https://malluchat.online/terms</loc>
+    <priority>0.60</priority>
+  </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://malluchat.online/privacy</loc>
+    <priority>0.60</priority>
+  </url>
+
 </urlset>
