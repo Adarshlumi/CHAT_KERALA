@@ -64,28 +64,6 @@ def get_today_index_visits():
 
 # Routes
 
-
-@app.route("/terms")
-def terms():
-    return render_template("terms.html")
-
-@app.route("/privacy")
-def privacy():
-    return render_template("privacy.html")
-
-
-
-
-@app.route('/robots.txt')
-def robots():
-    return send_from_directory('static', 'robots.txt')
-
-
-
-
-
-
-
 @app.route('/')
 def index():
     ip = request.remote_addr
@@ -156,6 +134,20 @@ def favicon():
 @app.route('/sitemap.xml')
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory('static', 'robots.txt')
+
 
 # SocketIO Events
 def emit_admin_update():
