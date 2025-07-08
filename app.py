@@ -102,10 +102,21 @@ def admin_dashboard():
         return redirect('/admin')
     daily_users = get_today_index_visits()
     return render_template('dashboard.html',
-                           users=list(connected_users),  # <- FIXED
-                           rooms=rooms,
-                           waiting=waiting_users,
-                           daily_users=daily_users)
+        users=list(connected_users),  # 🔥 This is critical
+        rooms=rooms,
+        waiting=waiting_users,
+        daily_users=daily_users
+    )
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    import traceback
+    traceback.print_exc()
+    return "500 Internal Server Error", 500
+
+
+
 @app.route('/logout')
 def logout():
     session.pop('admin', None)
@@ -154,6 +165,18 @@ def sitemap():
     return send_from_directory('static', 'sitemap.xml')
 
 # SocketIO Events
+
+
+def emit_admin_update():
+    socketio.emit('admin_update', {
+        'users': list(connected_users),  # ✅ List!
+        'waiting': waiting_users,
+        'rooms': rooms
+    })
+
+
+
+
 def emit_admin_update():
     socketio.emit('admin_update', {
         'users': list(connected_users),
