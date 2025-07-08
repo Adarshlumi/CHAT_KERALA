@@ -76,6 +76,13 @@ def privacy():
 
 
 
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory('static', 'robots.txt')
+
+
+
+
 
 
 
