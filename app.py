@@ -101,8 +101,11 @@ def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin')
     daily_users = get_today_index_visits()
-    return render_template('dashboard.html', users=connected_users, rooms=rooms, waiting=waiting_users, daily_users=daily_users)
-
+    return render_template('dashboard.html',
+                           users=list(connected_users),  # <- FIXED
+                           rooms=rooms,
+                           waiting=waiting_users,
+                           daily_users=daily_users)
 @app.route('/logout')
 def logout():
     session.pop('admin', None)
