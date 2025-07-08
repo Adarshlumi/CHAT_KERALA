@@ -1,8 +1,1 @@
 
-
-Allow: /
-Allow: /terms
-Allow: /privacy
-Allow: /ashore
-
-Sitemap: https://malluchat.online/sitemap.xml
