@@ -2,7 +2,7 @@ from flask import Flask, render_template, send_from_directory, request, redirect
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 from uuid import uuid4
-from datetime import date
+from datetime import date, datetime, timedelta
 import os
 import sqlite3
 from dotenv import load_dotenv
@@ -53,7 +53,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Ensure the table always exists before any route
 init_db()
 
 def log_index_visit(ip):
@@ -70,6 +69,28 @@ def get_today_index_visits():
     count = c.fetchone()[0]
     conn.close()
     return count
+
+def get_last_24_hours_unique_visits():
+    conn = sqlite3.connect(DATABASE)
+    since = (datetime.utcnow() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+    c = conn.cursor()
+    c.execute("SELECT COUNT(DISTINCT ip) FROM index_visits WHERE timestamp >= ?", (since,))
+    count = c.fetchone()[0]
+    conn.close()
+    return count
+
+def get_all_daily_user_counts():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    c.execute("""
+      SELECT DATE(timestamp) as day, COUNT(DISTINCT ip) as users
+      FROM index_visits
+      GROUP BY day
+      ORDER BY day DESC
+    """)
+    results = c.fetchall()
+    conn.close()
+    return results   # list of (date, count) tuples
 
 # Routes
 
@@ -94,12 +115,16 @@ def admin_login():
 def admin_dashboard():
     if not session.get("admin"):
         return redirect("/admin")
-    daily_users = get_today_index_visits()
+    daily_users = get_today_index_visits()        # today only
+    users_last_24hr = get_last_24_hours_unique_visits()
+    all_daily_counts = get_all_daily_user_counts()  # list of (date, count) tuples
     return render_template("dashboard.html",
         users=list(connected_users),
         rooms=rooms,
         waiting=waiting_users,
-        daily_users=daily_users
+        daily_users=daily_users,
+        users_last_24hr=users_last_24hr,
+        all_daily_counts=all_daily_counts,
     )
 
 @app.route("/logout")
