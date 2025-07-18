@@ -40,7 +40,7 @@ alarm_active = {'show': False, 'message': ''}
 # DB
 DATABASE = 'database.db'
 
-def log_index_visit(ip):
+def init_db():
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
     c.execute("""
@@ -50,6 +50,15 @@ def log_index_visit(ip):
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.commit()
+    conn.close()
+
+# Ensure the table always exists before any route
+init_db()
+
+def log_index_visit(ip):
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
     c.execute("INSERT INTO index_visits (ip) VALUES (?)", (ip,))
     conn.commit()
     conn.close()
