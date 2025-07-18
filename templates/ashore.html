@@ -5,62 +5,117 @@
   <title>⏳ Payment Required</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
-      background-color: #5e89c5;
-      font-family: 'Segoe UI', sans-serif;
+      padding: 0;
+      font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #75bfff 0%, #fffde4 100%);
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       min-height: 100vh;
-      padding: 1rem;
     }
     .container {
-      background-color: white;
-      color: #1a202c;
-      border-radius: 1rem;
-      padding: 2rem 1.5rem;
-      max-width: 400px;
-      width: 100%;
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 24px rgba(30, 78, 110, 0.15);
+      padding: 2.5rem 2rem 2rem 2rem;
+      max-width: 370px;
+      width: 90%;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: popAnim 0.57s cubic-bezier(.68,-0.55,.27,1.55);
     }
-    .container .subtext {
-      font-size: 1.1rem;
-      color: #b91c1c;
-      font-weight: 600;
+    @keyframes popAnim {
+      0% { transform: scale(0.95); opacity: 0.7;}
+      100% { transform: scale(1); opacity: 1;}
+    }
+    .subtext {
+      font-size: 1.15rem;
+      color: #fa5252;
+      font-weight: 700;
       margin-bottom: 1.5rem;
+      letter-spacing: 0.02em;
+    }
+    .qr {
+      padding: 1rem;
+      border-radius: 1.1rem;
+      background: #f5f8ff;
+      border: 1.7px solid #e5e7eb;
+      box-shadow: 0 2px 8px rgba(30,78,110,0.08);
+      margin-bottom: 1rem;
+      width: 235px;
+      display: flex;
+      align-items: center; justify-content: center;
+      transition: box-shadow 0.14s;
+    }
+    .qr:hover {
+      box-shadow: 0 4px 18px rgba(30,78,110,0.13);
+      border-color: #aee2ff;
     }
     .qr img {
-      width: 100%;
-      max-width: 260px;
-      height: auto;
-      border-radius: 12px;
-      border: 2px solid #e2e8f0;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+      width: 180px;
+      max-width: 100%;
+      border-radius: 10px;
+      transition: transform 0.18s;
+    }
+    .qr img:hover {
+      transform: scale(1.04) rotate(-2deg);
+    }
+    .pay-btn {
+      margin-top: 1.2rem;
+      display: inline-block;
+      background: linear-gradient(90deg, #24c6dc 0%, #5433ff 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.13rem;
+      padding: 0.7rem 2.2rem;
+      border: none;
+      border-radius: 2.5rem;
+      box-shadow: 0 2px 12px rgba(24, 88, 200, 0.15);
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: background .16s, box-shadow .16s;
+    }
+    .pay-btn:hover {
+      background: linear-gradient(90deg, #5433ff 0%, #2a5298 100%);
+      box-shadow: 0 5px 15px rgba(69, 130, 247, 0.14);
     }
     .footer {
-      font-size: 0.9rem;
-      color: #4a5568;
-      margin-top: 1rem;
+      font-size: 0.98rem;
+      color: #5f6d86;
+      margin-top: 1.4rem;
+    }
+    @media (max-width: 450px) {
+      .container {
+        max-width: 97vw;
+        padding: 1.6rem 0.5rem 1.2rem 0.5rem;
+      }
+      .qr { width: 97vw; padding: 0.6rem;}
+      .qr img { width: 90vw; max-width: 170px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <p class="subtext">Your Free Time Is Over Pay ₹20 to continue using the service.</p>
-
-    <div class="qr">
-      <img src="/static/20.png" alt="Scan QR Code to Pay ₹20">
+    <div class="subtext">
+      <span>⏳ Your free time is over.</span><br>
+      <span style="color:#1678e2;">Pay <b>₹20</b> to continue using the service.</span>
     </div>
-
-    <div class="footer">Scan using Paytm, GPay or any UPI app</div>
+    <div class="qr">
+      <img src="/static/20.png" alt="Scan to Pay ₹20">
+    </div>
+    <button class="pay-btn" onclick="document.querySelector('.qr img').scrollIntoView({behavior: 'smooth', block: 'center'}); window.navigator.vibrate && window.navigator.vibrate(40);">Pay Now</button>
+    <div class="footer">
+      Scan using Paytm, GPay, PhonePe or any UPI app.<br>
+      <span style="color:#ea0395;font-weight:600;">Thank you for supporting us!</span>
+    </div>
   </div>
-
   <script>
     const socket = io();
     socket.on('hide_alarm', () => {
