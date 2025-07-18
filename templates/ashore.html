@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>⏳ Payment Required</title>
+  <title>Admin Dashboard - User Stats</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500;700&display=swap" rel="stylesheet">
@@ -18,13 +18,14 @@
       align-items: center;
       min-height: 100vh;
     }
-    .container {
+    .container.dashboard {
       background: #fff;
       border-radius: 1.5rem;
       box-shadow: 0 8px 24px rgba(30, 78, 110, 0.15);
-      padding: 2.5rem 2rem 2rem 2rem;
-      max-width: 370px;
-      width: 90%;
+      padding: 2rem 2rem 2rem 2rem;
+      max-width: 540px;
+      width: 96%;
+      margin-top: 2rem;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -35,86 +36,87 @@
       0% { transform: scale(0.95); opacity: 0.7;}
       100% { transform: scale(1); opacity: 1;}
     }
-    .subtext {
-      font-size: 1.15rem;
-      color: #fa5252;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-      letter-spacing: 0.02em;
+    .dashboard h2 {
+      color: #3655d8;
+      margin-bottom: 1.3em;
     }
-    .qr {
-      padding: 1rem;
-      border-radius: 1.1rem;
-      background: #f5f8ff;
-      border: 1.7px solid #e5e7eb;
-      box-shadow: 0 2px 8px rgba(30,78,110,0.08);
-      margin-bottom: 1rem;
-      width: 235px;
-      display: flex;
-      align-items: center; justify-content: center;
-      transition: box-shadow 0.14s;
+    .user-stats p, .user-stats h4 {
+      margin-top: 1.3em;
+      margin-bottom: 0.8em;
+      color: #25304a;
     }
-    .qr:hover {
-      box-shadow: 0 4px 18px rgba(30,78,110,0.13);
-      border-color: #aee2ff;
+    .user-stats table {
+      background: #f8fbff;
+      border-radius: 8px;
+      border-collapse: collapse;
+      margin: auto;
+      width: 98%;
+      box-shadow: 0 2px 8px rgba(30,78,110,0.05);
     }
-    .qr img {
-      width: 180px;
-      max-width: 100%;
-      border-radius: 10px;
-      transition: transform 0.18s;
+    .user-stats th, .user-stats td {
+      border: 1px solid #e5eef8;
+      padding: 9px 13px;
+      text-align: center;
+      font-size: 1rem;
     }
-    .qr img:hover {
-      transform: scale(1.04) rotate(-2deg);
+    .user-stats th {
+      background: #e9f4ff;
+      color: #2451ae;
+      font-weight: bold;
     }
-    .pay-btn {
-      margin-top: 1.2rem;
-      display: inline-block;
-      background: linear-gradient(90deg, #24c6dc 0%, #5433ff 100%);
+    .user-stats tr:nth-child(even) {
+      background: #f3f7fa;
+    }
+    .user-stats tr:hover td {
+      background: #eef7ff !important;
+      color: #1268d3;
+    }
+    @media (max-width: 600px) {
+      .container.dashboard { max-width: 99vw; padding: 1rem 0.3rem; }
+      .user-stats table { font-size: 0.94rem; }
+      .dashboard h2 { font-size: 1.18rem; }
+    }
+    .logout-btn {
+      background: #fa5252;
       color: #fff;
-      font-weight: 700;
-      font-size: 1.13rem;
-      padding: 0.7rem 2.2rem;
       border: none;
-      border-radius: 2.5rem;
-      box-shadow: 0 2px 12px rgba(24, 88, 200, 0.15);
+      border-radius: 18px;
+      padding: 0.6em 1.5em;
+      font-weight: bold;
+      font-size: 1.05em;
+      margin: 1.4em 0 0.5em 0;
       cursor: pointer;
-      letter-spacing: 0.01em;
-      transition: background .16s, box-shadow .16s;
+      transition: background .18s;
+      box-shadow: 0 2px 7px #ffbbba44;
     }
-    .pay-btn:hover {
-      background: linear-gradient(90deg, #5433ff 0%, #2a5298 100%);
-      box-shadow: 0 5px 15px rgba(69, 130, 247, 0.14);
-    }
-    .footer {
-      font-size: 0.98rem;
-      color: #5f6d86;
-      margin-top: 1.4rem;
-    }
-    @media (max-width: 450px) {
-      .container {
-        max-width: 97vw;
-        padding: 1.6rem 0.5rem 1.2rem 0.5rem;
-      }
-      .qr { width: 97vw; padding: 0.6rem;}
-      .qr img { width: 90vw; max-width: 170px; }
+    .logout-btn:hover {
+      background: #b91c1c;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="subtext">
-      <span>⏳ Your free time is over.</span><br>
-      <span style="color:#1678e2;">Pay <b>₹20</b> to continue using the service.</span>
+  <div class="container dashboard">
+    <h2>🚦 Admin Dashboard</h2>
+    <div class="user-stats">
+      <p><b>Unique users today:</b> <span style="color:#1874ad;">{{ daily_users }}</span></p>
+      <p><b>Unique users <span title="Rolling 24-hour window (not calendar day)">past 24 hours</span>:</b> <span style="color:#ca6800;">{{ users_last_24hr }}</span></p>
+      <h4>History (unique users by day):</h4>
+      <table>
+        <tr>
+          <th>Date</th>
+          <th>Unique Users</th>
+        </tr>
+        {% for day, count in all_daily_counts %}
+        <tr>
+          <td>{{ day }}</td>
+          <td>{{ count }}</td>
+        </tr>
+        {% endfor %}
+      </table>
     </div>
-    <div class="qr">
-      <img src="/static/20.png" alt="Scan to Pay ₹20">
-    </div>
-    <button class="pay-btn" onclick="document.querySelector('.qr img').scrollIntoView({behavior: 'smooth', block: 'center'}); window.navigator.vibrate && window.navigator.vibrate(40);">Pay Now</button>
-    <div class="footer">
-      Scan using Paytm, GPay, PhonePe or any UPI app.<br>
-      <span style="color:#ea0395;font-weight:600;">Thank you for supporting us!</span>
-    </div>
+    <form method="get" action="/logout">
+      <button type="submit" class="logout-btn">Logout</button>
+    </form>
   </div>
   <script>
     const socket = io();
